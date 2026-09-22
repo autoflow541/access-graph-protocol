@@ -13,9 +13,9 @@ import { AgpSpecsSessionController, AgpSpecsSurface, SpecsActionState } from "./
  *
  *   confirmation_required -> Confirm / Cancel
  *   authorization_required -> Authorize / Deny   (delegates to the
- *       underlying service per SECURITY.md — see AgpSpecsSessionController
+ *       underlying service per SECURITY.md: see AgpSpecsSessionController
  *       .authorizationFinished. THIS REFERENCE PROJECT'S authorize(true)
- *       is a stand-in for that real decision — see the "(Simulated)"
+ *       is a stand-in for that real decision: see the "(Simulated)"
  *       label below. A real integration replaces AgpDeviceSource's
  *       in-Lens executor with one that calls an actual account/device
  *       authorization flow; nothing in this gate changes when it does.)

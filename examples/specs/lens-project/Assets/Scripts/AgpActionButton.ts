@@ -5,7 +5,7 @@ import { Interactable } from "SpectaclesInteractionKit.lspkg/Components/Interact
  * verified Interactable.onTriggerStart event (hand pinch/poke) so the same
  * component works regardless of which visual (RoundButton, plain quad,
  * text-only) is wired to `label`. This is the single place a hand-input
- * trigger becomes an AGP action id — it never itself decides the action is
+ * trigger becomes an AGP action id: it never itself decides the action is
  * authorized, it only reports the selection upward.
  */
 @component

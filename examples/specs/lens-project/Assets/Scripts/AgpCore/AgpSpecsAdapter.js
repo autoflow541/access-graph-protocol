@@ -41,7 +41,7 @@ export function toSpecsView(object, profile = {}) {
  *
  * A request() call creates an immutable proposal: the action's parameters
  * are validated, deep-cloned, and bound at that point, not supplied later
- * at execute(). This closes a confirmation/execution mismatch — without
+ * at execute(). This closes a confirmation/execution mismatch: without
  * it, a user could confirm one action and have a different set of
  * parameters run, because confirm()/provideAuthorization() only ever
  * referenced the action id, not what it would actually do. execute() uses
@@ -51,7 +51,7 @@ export function toSpecsView(object, profile = {}) {
  * `pending` is a read-only accessor (defined with only a getter, so an
  * assignment to it throws rather than silently replacing the proposal)
  * over a variable that lives in this constructor's closure, not on `this`
- * — there is no `session._pending` or similar property for outside code
+ *: there is no `session._pending` or similar property for outside code
  * to reach around the accessor and write to directly. Every proposal
  * object is deep-frozen before being stored, so even a mutation attempt
  * on a nested field of the object `session.pending` or request()'s return
@@ -60,7 +60,7 @@ export function toSpecsView(object, profile = {}) {
  * mutating the previous one in place. (This uses closures instead of
  * ES2022 `#private` class fields because this file is copied verbatim
  * into the Lens Studio project in examples/specs/lens-project/, whose JS
- * engine's support for `#private` fields is unverified — see
+ * engine's support for `#private` fields is unverified: see
  * scripts/sync-lens-assets.mjs.)
  */
 export class SpecsActionSession {
@@ -204,7 +204,7 @@ function normalize(value) {
 // schema (as produced by adapters/wot/index.js's schemaParameter) and
 // returns only the recognized, valid values, deep-cloned so the bound
 // proposal never shares object/array references with the caller's
-// original argument — this is what gets bound to the proposal, so an
+// original argument: this is what gets bound to the proposal, so an
 // unvalidated, unrecognized, or externally-mutable value can never reach
 // an executor. Exported so service/execution-service.js validates
 // proposals with the exact same logic instead of a third reimplementation.

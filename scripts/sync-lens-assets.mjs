@@ -11,7 +11,7 @@ const destDir = join(root, "examples/specs/lens-project/Assets/Scripts/AgpCore")
 
 // The Lens Studio copies sit flat in one folder, so the "../../sdk/..." style
 // relative import used at the repo root has to become a same-folder import.
-// This is the ONLY change made to the source text — everything else must
+// This is the ONLY change made to the source text: everything else must
 // stay byte-identical, which is what tests/lens-assets-sync-test.mjs enforces.
 export const SYNCED_FILES = [
   { from: "sdk/javascript/agp.js", to: "agp.js", rewrite: [] },

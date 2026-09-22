@@ -76,7 +76,7 @@ if (new Set(crossBranchCollision.map((o) => o.id)).size !== 2) {
 }
 
 // A direct ariaElementToAgp() call (not through scanAria) has no
-// allocator to disambiguate against — this is expected, since collision
+// allocator to disambiguate against: this is expected, since collision
 // detection needs visibility across multiple elements that only a scan
 // has, and this is documented behavior, not a fallback bug.
 const direct = ariaElementToAgp(fakeElement({ tagName: "BUTTON", textContent: "Solo", attrs: { id: "solo-button" } }), { index: 0 });

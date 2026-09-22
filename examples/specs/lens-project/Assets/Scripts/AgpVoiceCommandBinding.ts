@@ -4,7 +4,7 @@ import { AgpConfirmationAuthorizationGate } from "./AgpConfirmationAuthorization
 
 // Fixed control-word vocabulary for the confirmation/authorization gate.
 // Deliberately NOT run through matchSpecsIntent (which matches AGP action
-// ids/labels/voice_aliases) — these are gate controls, not device actions.
+// ids/labels/voice_aliases): these are gate controls, not device actions.
 const CONFIRM_WORDS = ["confirm"];
 const CANCEL_WORDS = ["cancel"];
 const AUTHORIZE_WORDS = ["authorize"];
@@ -14,10 +14,10 @@ const EXECUTE_WORDS = ["execute"];
 /**
  * Exact-phrase voice input only. AGP-0.1 SECURITY.md and the specs adapter
  * tests (tests/specs-adapter-test.mjs) require that free-form speech never
- * be guessed into an action — matchSpecsIntent already enforces this by
+ * be guessed into an action: matchSpecsIntent already enforces this by
  * only matching an action's id, label, or declared voice_aliases verbatim
  * (case/whitespace-normalized). This class does not add any fuzzy matching
- * on top of it, and a recognized utterance is only ever a SELECTION — never
+ * on top of it, and a recognized utterance is only ever a SELECTION: never
  * itself a confirmation or authorization (AgpSpecsSessionController still
  * requires the separate confirm()/authorize() gate steps below).
  */
@@ -91,7 +91,7 @@ export class AgpVoiceCommandBinding extends BaseScriptComponent {
     if (intent.status === "matched") {
       this.controller.selectAction(intent.actionId);
     } else if (intent.status === "ambiguous") {
-      print(`AgpVoiceCommandBinding: ambiguous utterance "${rawText}" matched ${intent.matches.join(", ")} — ignored`);
+      print(`AgpVoiceCommandBinding: ambiguous utterance "${rawText}" matched ${intent.matches.join(", ")}: ignored`);
     }
     // "no_match" is intentionally silent: unrecognized speech never guesses an action.
   }

@@ -13,8 +13,8 @@ describes device properties, actions, events, JSON-Schema-shaped data,
 security metadata, and interaction endpoints. AGP's `schema/access-graph.schema.json`
 describes a similar-looking object: id, role, label, state, actions,
 risk, confirmation. Two device-description formats covering overlapping
-ground is a real cost — every device vendor or integrator has to decide
-which one to implement — so this needs an explicit decision, not silent
+ground is a real cost: every device vendor or integrator has to decide
+which one to implement: so this needs an explicit decision, not silent
 drift.
 
 `adapters/wot/index.js` already exists and is one direction of that
@@ -26,7 +26,7 @@ already exists.
 
 **AGP's Access Graph schema is an accessibility/interaction projection of
 an underlying device or software description (WoT TD, ARIA, or a future
-adapter's native format) — not a replacement for any of them.**
+adapter's native format): not a replacement for any of them.**
 
 Concretely:
 
@@ -36,39 +36,39 @@ Concretely:
    forward credentials. This constraint already holds
    (`SECURITY.md`, `adapters/wot/README.md`) and this ADR does not change
    it.
-2. Fields that WoT already expresses authoritatively — security scheme,
-   data schema/type, read/write-only, forms/protocol bindings — are
+2. Fields that WoT already expresses authoritatively: security scheme,
+   data schema/type, read/write-only, forms/protocol bindings: are
    **read from the TD, not reinvented in AGP's schema.** Where the current
    adapter reinvents one of these badly (Findings C, D, F in
    `docs/capability-matrix.md`), the fix is to read more of what WoT
    already has, not to add a parallel AGP-native representation of the
    same fact.
-3. Fields WoT has no concept of — risk classification for the purpose of
+3. Fields WoT has no concept of: risk classification for the purpose of
    an accessibility/safety gate, confirmation requirement, Access Profile
-   matching, presentation hints (`toSpecsView`'s `presentation` object) —
-   are AGP's actual value-add and stay AGP-native.
+   matching, presentation hints (`toSpecsView`'s `presentation` object):
+   these are AGP's actual value-add and stay AGP-native.
 4. A **real** execution service (`ROADMAP.md`, "Execution service" in the
    five-responsibility architecture) should be able to use
    [Eclipse Thingweb `node-wot`](https://github.com/eclipse-thingweb/node-wot)
    or an equivalent WoT execution runtime directly for the dispatch step
    of a WoT-sourced action, rather than AGP reimplementing WoT protocol
-   bindings. This repo does not have an execution service yet — see
-   Milestone "Execution service, one integration" in `ROADMAP.md` — so
+   bindings. This repo does not have an execution service yet: see
+   Milestone "Execution service, one integration" in `ROADMAP.md`: so
    this point is a constraint on that future work, not something already
    built.
 5. Home Assistant's WebSocket API is a plausible *second* execution
    backend (real lamp/device bridge) for the room-control reference
    workflow in `ROADMAP.md`, evaluated after `node-wot`, not instead of
-   it — Home Assistant is a device-bridge product with its own entity
+   it: Home Assistant is a device-bridge product with its own entity
    model, not a description-format alternative to WoT, so it does not
    change this ADR's decision. Its `call_service` message
    (`{domain, service, service_data, target}`) has **no risk
-   classification or destructive-action warning of any kind** — Home
+   classification or destructive-action warning of any kind**: Home
    Assistant treats `light.turn_on` and a lock's `unlock` service
    identically at the protocol level. A future Home Assistant execution
    backend therefore cannot read risk/confirmation/category from Home
    Assistant the way `adapters/wot/index.js` reads `x-agp-risk` from a
-   TD — there is nothing there to read. It would need its own small,
+   TD: there is nothing there to read. It would need its own small,
    reviewed mapping from `domain`/`service` to AGP category (subject to
    the same category-mislabeling caution as Finding G,
    `docs/capability-matrix.md`: this mapping must be adapter-side and
@@ -82,7 +82,7 @@ Concretely:
    `authorization.required` should be read from a cluster/command's
    required ACL privilege, not reinvented. Matter's ACL, like WoT's
    security schemes and Home Assistant's service calls, has **no
-   risk/confirmation concept** — it answers "is this controller allowed to
+   risk/confirmation concept**: it answers "is this controller allowed to
    invoke this command on this fabric," never "should a person be shown a
    confirmation step before this specific invocation." A future Matter
    adapter is unbuilt (`ROADMAP.md`, "Matter capability mapping
@@ -105,7 +105,7 @@ Concretely:
   WoT-sourced devices. It needs an adapter and, eventually, an execution
   service that can call into an existing WoT runtime.
 - This decision does not resolve how a *non-WoT* device or piece of
-  software (a raw REST API, a proprietary SDK) should be described — that
+  software (a raw REST API, a proprietary SDK) should be described: that
   is a case-by-case adapter decision, made the same way `adapters/aria/`
   was: read the native format, project only the accessibility-relevant
   parts into AGP.
@@ -116,7 +116,7 @@ Concretely:
   That is evidence AGP's actual value-add (the risk/confirmation/
   Access-Profile layer, not the device description) is filling a real,
   consistently-missing gap across this ecosystem rather than duplicating
-  work any of them already does — see the positioning statement in
+  work any of them already does: see the positioning statement in
   `docs/prior-art-and-positioning.md`.
 
 ## Alternatives considered
@@ -130,6 +130,6 @@ Concretely:
 - **AGP schema mirrors WoT TD field-for-field.** Rejected: this would
   make the WoT adapter closer to a pass-through and would still leave
   AGP's actual value-add (risk/confirmation/Access-Profile-matching/
-  presentation) needing to live somewhere — better to keep AGP's schema
+  presentation) needing to live somewhere: better to keep AGP's schema
   minimal and clearly scoped to that value-add than to duplicate TD's
   full structure and then extend it.

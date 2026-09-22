@@ -1,4 +1,4 @@
-// A real network client for service/ — every state below reflects an
+// A real network client for service/: every state below reflects an
 // actual HTTP response (or the absence of one), not a local simulation.
 // See service/README.md for what the service does and does not
 // guarantee; this page's job is only to make each of those outcomes
@@ -7,7 +7,7 @@
 // Capability negotiation (negotiateCapabilities) is the one piece of this
 // page computed locally rather than fetched: only the client itself can
 // know what THIS session's input/output channels actually are, so it has
-// no business being a server call — see sdk/javascript/agp.js's comment
+// no business being a server call: see sdk/javascript/agp.js's comment
 // on why this must stay separate from anything profile-shaped.
 import { negotiateCapabilities } from "../../sdk/javascript/agp.js";
 
@@ -51,7 +51,7 @@ async function api(method, path, body) {
     });
   } catch (networkError) {
     // fetch() throws (not a rejected-with-a-response) when the request
-    // never reached a server at all — refused connection, DNS failure,
+    // never reached a server at all: refused connection, DNS failure,
     // the service isn't running. This is the "disconnected" state, and
     // it is NOT the same as any HTTP error status below.
     const error = new Error(`Cannot reach the execution service at ${SERVICE_URL}. Is "npm run service:dev" running?`);
@@ -252,7 +252,7 @@ async function executeProposal() {
       showOutcome("succeeded", "Action completed.");
       await loadDevice();
     } else if (result.status === "unknown") {
-      showOutcome("unknown", "The device did not respond in time. Its actual state is unknown — re-check before retrying, do not assume it failed.");
+      showOutcome("unknown", "The device did not respond in time. Its actual state is unknown: re-check before retrying, do not assume it failed.");
     } else {
       showOutcome("failed", result.reason || "The device reported a failure.");
     }
@@ -264,14 +264,14 @@ async function executeProposal() {
 
 function handleGateError(error) {
   if (error.code === "STALE_STATE") {
-    announce("The device state changed since this proposal was made. It has been cancelled — refreshing.");
+    announce("The device state changed since this proposal was made. It has been cancelled: refreshing.");
     pendingProposalId = null;
     closeGate();
     loadDevice();
     return;
   }
   if (error.code === "PROPOSAL_EXPIRED") {
-    announce("This proposal expired before you finished reviewing it. Cancelled — nothing was sent to the device.");
+    announce("This proposal expired before you finished reviewing it. Cancelled: nothing was sent to the device.");
     pendingProposalId = null;
     closeGate();
     return;
@@ -285,7 +285,7 @@ function handleGateError(error) {
 
 function describeStatus(status, action) {
   if (status === "confirmation_required") return `Confirm ${action?.label ?? "this action"}?`;
-  if (status === "authorization_required") return "Authorization required — complete it on the underlying service (simulated here).";
+  if (status === "authorization_required") return "Authorization required: complete it on the underlying service (simulated here).";
   if (status === "ready") return "Ready to execute.";
   return status;
 }
@@ -333,7 +333,7 @@ function inspectorEntry(action) {
   dl.append(...fragment("Confirmation", confirmationExplanation(action)));
   dl.append(...fragment("Authorization", authorizationExplanation(action)));
   if (action.parameters) dl.append(...fragment("Parameters", parametersExplanation(action.parameters)));
-  dl.append(...fragment("Can be proposed?", action.blocked ? action.blockedReason : "Yes — no structural block."));
+  dl.append(...fragment("Can be proposed?", action.blocked ? action.blockedReason : "Yes: no structural block."));
   details.append(dl);
 
   return details;
@@ -343,22 +343,22 @@ function inspectorEntry(action) {
 // category an adapter matched against a known vocabulary (e.g. a WoT
 // property/action shape it recognizes) is "reviewed"; a category the
 // device merely asserted about itself (e.g. a WoT `x-agp-category`
-// vendor extension) is only "declared" — trusted enough to RAISE the
+// vendor extension) is only "declared": trusted enough to RAISE the
 // applicable risk/confirmation floor, never to lower it. See
 // adapters/wot/index.js's resolveCategory and docs/audit-2026-09-22.md.
 function categoryProvenance(action) {
   if (!action.category) return "No category to classify.";
   if (action.categoryTrust === "reviewed") {
-    return "Reviewed — independently matched against the device's declared vocabulary, not just trusted from what the device claims about itself.";
+    return "Reviewed: independently matched against the device's declared vocabulary, not just trusted from what the device claims about itself.";
   }
   if (action.categoryTrust === "declared") {
-    return "Declared only — this category came from what the device itself asserted and has not been independently reviewed. It can only raise this action's risk/confirmation requirement, never lower it below what an unclassified action of this kind would require.";
+    return "Declared only: this category came from what the device itself asserted and has not been independently reviewed. It can only raise this action's risk/confirmation requirement, never lower it below what an unclassified action of this kind would require.";
   }
-  return "Unclassified — this action did not come through an adapter that records category provenance.";
+  return "Unclassified: this action did not come through an adapter that records category provenance.";
 }
 
 // The exact disjuncts below mirror sdk/javascript/agp.js's
-// requiresConfirmationFor(action, profile) — action.confirmation and
+// requiresConfirmationFor(action, profile): action.confirmation and
 // risk are both visible directly on the resolved action, so if
 // requiresConfirmation is true but neither of those applies, the
 // category-triggered branch must be the reason. This is elimination on
@@ -373,12 +373,12 @@ function confirmationExplanation(action) {
   if (reasons.length === 0) {
     reasons.push(`its category ("${action.category}") is one this device's Access Profile requires confirmation for`);
   }
-  return `Required — because ${reasons.join(" and ")}.`;
+  return `Required: because ${reasons.join(" and ")}.`;
 }
 
 function authorizationExplanation(action) {
   if (!action.authorizationRequired) return "Not required.";
-  return "Required — the device's action definition marks this as needing authorization before dispatch. Authorization is enforced server-side (service/execution-service.js), but the default provider is simulated: it trusts whatever the caller asserts. See SECURITY.md.";
+  return "Required: the device's action definition marks this as needing authorization before dispatch. Authorization is enforced server-side (service/execution-service.js), but the default provider is simulated: it trusts whatever the caller asserts. See SECURITY.md.";
 }
 
 function parametersExplanation(parameters) {

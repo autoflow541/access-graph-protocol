@@ -3,15 +3,15 @@ import { Slider } from "SpectaclesUIKit.lspkg/Scripts/Components/Slider/Slider";
 /**
  * Lives on the parameter-slider prefab. Drives a single numeric
  * AGP action parameter (the "value" parameter WoT property writes like
- * write_targettemperature produce — see adapters/wot/index.js
+ * write_targettemperature produce: see adapters/wot/index.js
  * schemaParameter) through SpectaclesUIKit's Slider component.
  *
- * Slider.currentValue is normalized to [0, 1] — it has no native
- * min/max/step of its own — so this class does the linear mapping to and
+ * Slider.currentValue is normalized to [0, 1]: it has no native
+ * min/max/step of its own: so this class does the linear mapping to and
  * from the parameter's actual `minimum`/`maximum` range itself.
  *
  * The AGP action id this configures is NOT selected/proposed on every
- * drag tick (Slider.onValueChange) — only once the interaction finishes
+ * drag tick (Slider.onValueChange): only once the interaction finishes
  * (Slider.onFinished), so dragging through intermediate values doesn't
  * create a new confirmation proposal for each one. This mirrors the
  * browser demo (examples/smart-device/app.js), where the temperature

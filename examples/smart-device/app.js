@@ -87,7 +87,7 @@ function begin(actionId, parameters = {}) {
 }
 
 function showGate(status, message) {
-  // adapters/specs/index.js's message text stays platform-neutral — this
+  // adapters/specs/index.js's message text stays platform-neutral: this
   // demo's authorization step is a local simulation, so the disclosure is
   // added here, once, so both the visible gate text and the screen-reader
   // announcer get the identical disclosed text.
@@ -115,7 +115,7 @@ function advance(result) {
 
 async function execute() {
   // Parameters are already bound to the proposal from begin() and were
-  // carried through confirmation/authorization — execute() does not
+  // carried through confirmation/authorization: execute() does not
   // accept a new value here, so a dragged-but-not-resubmitted slider
   // change can never silently swap in for what was actually confirmed.
   await session.execute();

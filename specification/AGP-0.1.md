@@ -23,17 +23,17 @@ An Access Engine can combine an AGP graph with a user-controlled Access Profile 
 
 ## Core fields
 
-- `agp` — protocol version.
-- `id` — stable object identifier inside a graph.
-- `role` — semantic role such as `button`, `door`, `sensor`, `drone`, or a custom role.
-- `label` — human-readable name.
-- `description` — optional concise description.
-- `state` — current machine-readable values.
-- `actions` — operations the object exposes.
-- `inputs` / `outputs` — supported interaction modalities.
-- `relationships` — edges to other objects.
-- `events` — events that can be emitted.
-- `source` — provenance/trust information.
+- `agp`: protocol version.
+- `id`: stable object identifier inside a graph.
+- `role`: semantic role such as `button`, `door`, `sensor`, `drone`, or a custom role.
+- `label`: human-readable name.
+- `description`: optional concise description.
+- `state`: current machine-readable values.
+- `actions`: operations the object exposes.
+- `inputs` / `outputs`: supported interaction modalities.
+- `relationships`: edges to other objects.
+- `events`: events that can be emitted.
+- `source`: provenance/trust information.
 
 ## Actions
 
@@ -51,9 +51,9 @@ Accessibility preferences MUST NOT bypass authentication, authorization, interlo
 
 Input recognition is not authorization. A gesture, gaze selection, switch event, voice match, AI interpretation, or possession of an interface device MUST NOT be treated as proof that an action is authorized. An adapter MUST preserve the underlying platform's authorization boundary.
 
-Confirmation MUST bind to a specific, validated set of parameters, not only to an action id. If an action takes parameters, "confirming the action" without reference to what those parameters are is not a meaningful confirmation — a client MUST treat a change in parameters after confirmation as invalidating that confirmation, requiring a new proposal.
+Confirmation MUST bind to a specific, validated set of parameters, not only to an action id. If an action takes parameters, "confirming the action" without reference to what those parameters are is not a meaningful confirmation: a client MUST treat a change in parameters after confirmation as invalidating that confirmation, requiring a new proposal.
 
-Confirmation and authorization MUST remain distinct, checkable states, not a callback or dialog a caller can invoke and fail to reach the user. An interaction path (e.g. a voice command) that can trigger an action MUST route through the same confirmation/authorization states as every other input path for that action — there MUST NOT be an input-modality-specific way to skip either state. (Apple's App Intents framework has documented cases where `requestConfirmation` silently fails to surface a dialog when an intent is invoked via voice or from a widget context — this is the concrete failure class this requirement exists to prevent.)
+Confirmation and authorization MUST remain distinct, checkable states, not a callback or dialog a caller can invoke and fail to reach the user. An interaction path (e.g. a voice command) that can trigger an action MUST route through the same confirmation/authorization states as every other input path for that action: there MUST NOT be an input-modality-specific way to skip either state. (Apple's App Intents framework has documented cases where `requestConfirmation` silently fails to surface a dialog when an intent is invoked via voice or from a widget context: this is the concrete failure class this requirement exists to prevent.)
 
 ## Access Profile
 

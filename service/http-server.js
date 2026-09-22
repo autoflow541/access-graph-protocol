@@ -3,7 +3,7 @@ import { createServer } from "node:http";
 // Maps ExecutionService's error codes to HTTP status codes. An error with
 // no .code (e.g. a raw validation error from adapters/specs/index.js's
 // validateParameters, or AccessGraph.resolveAction's "Unknown action")
-// is treated as a 400 — the request itself was malformed, not a
+// is treated as a 400: the request itself was malformed, not a
 // state/authorization problem.
 const STATUS_BY_CODE = {
   UNAUTHENTICATED: 401,
@@ -17,7 +17,7 @@ const STATUS_BY_CODE = {
 };
 
 /**
- * A thin, dependency-free HTTP surface over ExecutionService — no
+ * A thin, dependency-free HTTP surface over ExecutionService: no
  * framework, only Node's built-in `http` module, matching this repo's
  * dependency-free SDK/adapters. It does no policy of its own: every
  * request is translated into exactly one ExecutionService call, and every
@@ -25,12 +25,12 @@ const STATUS_BY_CODE = {
  * The service instance is authoritative; this file is just transport.
  *
  * CORS is permissive by default (`corsOrigin: "*"`) so a browser example
- * on a different local port can call it directly — this is a local
+ * on a different local port can call it directly: this is a local
  * development convenience, not a production posture. A real deployment
  * MUST set `corsOrigin` to its actual client origin(s); it is a
  * constructor option specifically so that choice is explicit, not an
  * accident of the default. This never widens who can act: CORS only
- * controls which *browser* origins may read the response — authentication
+ * controls which *browser* origins may read the response: authentication
  * (the `allowedCallers` check in ExecutionService) still runs on every
  * request regardless of origin, so a wildcard CORS origin does not by
  * itself grant a browser any capability it doesn't already have from a

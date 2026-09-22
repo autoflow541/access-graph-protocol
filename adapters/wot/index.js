@@ -6,7 +6,7 @@ const PRIMITIVE_PARAMETER_TYPES = new Set(["string", "number", "integer", "boole
 // Category-based policy floors. A source (a Thing Description) can declare
 // `x-agp-risk` / `x-agp-confirmation`, but for these categories that
 // declaration can only ever RAISE the effective risk/confirmation
-// requirement, never lower it below the floor here — an untrusted or
+// requirement, never lower it below the floor here: an untrusted or
 // buggy device cannot self-declare a dangerous action as safe. This is
 // the same trust-model gap MCP's tool-annotations spec documents for its
 // own hints: annotations may inform UI, but must not be the thing that
@@ -16,15 +16,15 @@ const PRIMITIVE_PARAMETER_TYPES = new Set(["string", "number", "integer", "boole
 // The category itself (`x-agp-category`) is ALSO source-declared, so a
 // device can still dodge these floors by mislabeling a dangerous action as
 // e.g. `device_control`. A client-side adapter has no independent way to
-// know a category claim is honest — closing that needs classification
+// know a category claim is honest: closing that needs classification
 // from a reviewed/allowlisted source, not the device itself. `options.
 // categoryPolicy` (see resolveCategory below) is that mechanism: a caller
 // who has reviewed a specific device/role can supply the real category,
 // which then overrides the source's claim and is subject to the same
 // floors above. Every action's `metadata.category_trust` records whether
 // its category came from that reviewed policy ("reviewed") or only from
-// the source itself ("declared"), so a consumer can see — and choose to
-// treat with extra caution — an unreviewed claim, instead of the trust
+// the source itself ("declared"), so a consumer can see: and choose to
+// treat with extra caution: an unreviewed claim, instead of the trust
 // status being silently assumed either way (audit finding G, category gap).
 const CATEGORY_RISK_FLOOR = {
   physical_safety: "high",
@@ -114,7 +114,7 @@ function propertyState(properties, values) {
   return state;
 }
 
-// write-only properties (WoT `writeOnly: true`) are never observable —
+// write-only properties (WoT `writeOnly: true`) are never observable:
 // projecting a supplied or default value into `state` for one would claim
 // to know something that, by the property's own declared affordance, this
 // adapter cannot read back (audit finding C).
@@ -123,7 +123,7 @@ function isStateReadable(property) {
 }
 
 // Returns the property's OBSERVED value only: a live supplied value, or a
-// WoT `const` (definitionally always known — a const property doesn't
+// WoT `const` (definitionally always known: a const property doesn't
 // need a live read to be accurate). A schema `default` is NOT an observed
 // value; using it as a state fallback would silently present a guess as
 // live device state. With neither a supplied value nor a const, the
@@ -191,7 +191,7 @@ function thingActions(td, actions, allocateActionId, categoryPolicy) {
 // trusted ("reviewed") and subject to the same floors as an honestly
 // self-declared one; anything else falls back to the TD's own
 // `x-agp-category` (or the "device_control" default) and is marked
-// "declared" — untrusted, not silently treated as equivalent to reviewed.
+// "declared": untrusted, not silently treated as equivalent to reviewed.
 // This does not detect a lie on its own; it gives an integrator who HAS
 // reviewed a device a way to correct one, and makes which actions have
 // NOT been reviewed visible instead of indistinguishable from those that
@@ -287,13 +287,13 @@ function schemaParameter(schema = {}, required = true) {
 // An affordance can have MULTIPLE forms, and a form with no `security` of
 // its own inherits the Thing-level default rather than being exempt from
 // it. An earlier version only looked at forms that had an explicit
-// override and ignored every other form entirely — so one form
+// override and ignored every other form entirely: so one form
 // explicitly declaring "nosec" made the whole affordance look
 // unauthenticated even when a sibling form (with no override, and so
 // inheriting a Thing-level scheme that DOES require auth) was just as
 // valid a way to invoke it. This resolves each form's OWN effective
 // security independently and requires authorization if ANY of them would
-// — fail toward the more restrictive reading, never toward whichever
+//: fail toward the more restrictive reading, never toward whichever
 // form happens to be open.
 function requiresAuthorization(td, affordance) {
   const forms = Array.isArray(affordance?.forms) ? affordance.forms : [];

@@ -22,7 +22,7 @@ function builtInDefaultProfile(): Record<string, unknown> {
  * the browser demo and the Lens exercise the same AGP object shape.
  *
  * No network Thing is contacted. `propertyValues` are simulated in memory,
- * matching the "simulated WoT thermostat" scope of AGP 0.1.1 — a real Thing
+ * matching the "simulated WoT thermostat" scope of AGP 0.1.1: a real Thing
  * would plug into this same adapter without changing anything downstream.
  */
 @component

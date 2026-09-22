@@ -171,7 +171,7 @@ function inferActions(element, role, tag) {
   // A form can submit anything from a trivial search box to a payment or
   // an irreversible account action, and this adapter has no way to tell
   // which. It previously paired "medium" risk with an explicit
-  // `confirmation: false` — opting OUT of confirmation for an action this
+  // `confirmation: false`: opting OUT of confirmation for an action this
   // adapter itself doesn't actually know is safe, inconsistent with the
   // fail-safe default used elsewhere (adapters/wot/index.js defaults an
   // unclassified write to medium risk WITH confirmation required;
@@ -198,7 +198,7 @@ function inferInputs(element, role) {
 // Two elements with an `id` or `name` differing only by case or
 // punctuation (e.g. id="Save-Button" and id="SAVE-BUTTON", or two
 // same-role fields named "Email" and "EMAIL") can slug() to the same
-// candidate — and a no-id/no-name element's index-based fallback can
+// candidate: and a no-id/no-name element's index-based fallback can
 // independently land on that same string too (e.g. a third button at
 // index 2 naturally producing "web-button-3", colliding with an
 // id="button-3" element's "web-button-3"). `allocateId`, one instance per
@@ -206,7 +206,7 @@ function inferInputs(element, role) {
 // every id already handed out in that scan, the same way
 // adapters/wot/index.js's WoT id generation does. A caller invoking
 // ariaElementToAgp() directly (not through scanAria) without an
-// allocateId gets the un-disambiguated id, as before — collision
+// allocateId gets the un-disambiguated id, as before: collision
 // detection needs visibility across multiple elements, which only
 // scanAria's multi-element scan has.
 function stableId(element, role, index, allocateId) {

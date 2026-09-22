@@ -2,7 +2,7 @@
 
 AGP is currently an experimental interoperability prototype. The roadmap prioritizes evidence that one semantic model can work across fundamentally different technologies.
 
-## 0.1 — Working model
+## 0.1: Working model
 
 - [x] Core Access Graph object
 - [x] Access Profile
@@ -13,21 +13,21 @@ AGP is currently an experimental interoperability prototype. The roadmap priorit
 - [x] HTML/ARIA adapter
 - [x] JSON Schemas
 
-## 0.2 — Interoperability proof
+## 0.2: Interoperability proof
 
 - [ ] Windows UI Automation adapter
 - [ ] Android accessibility adapter
 - [x] W3C Web of Things adapter
 - [x] SPECS semantic view and safety bridge
 - [x] Simulated WoT smart-device/SPECS interaction demo
-- [ ] Lens Studio (SPECS 27) project — source complete in `examples/specs/lens-project/` (real TypeScript against SIK/Spectacles UI Kit/ASR/TTS, world-locked controls, hand + exact-voice input, a bounded-numeric-parameter slider control, captions/speech/large-text/high-contrast/reduced-motion/one-step, confirmation and authorization kept as separate gates); not yet device-tested (see "0.4 — Real-world pilots")
-- [ ] Matter capability mapping experiment — data-model and trust-boundary decision already made in `docs/adr-0001-wot-reuse.md` (item 6) and researched in `docs/prior-art-and-positioning.md`; not yet implemented as an adapter
+- [ ] Lens Studio (SPECS 27) project: source complete in `examples/specs/lens-project/` (real TypeScript against SIK/Spectacles UI Kit/ASR/TTS, world-locked controls, hand + exact-voice input, a bounded-numeric-parameter slider control, captions/speech/large-text/high-contrast/reduced-motion/one-step, confirmation and authorization kept as separate gates); not yet device-tested (see "0.4: Real-world pilots")
+- [ ] Matter capability mapping experiment: data-model and trust-boundary decision already made in `docs/adr-0001-wot-reuse.md` (item 6) and researched in `docs/prior-art-and-positioning.md`; not yet implemented as an adapter
 - [ ] MCP tool projection for AGP actions
 - [ ] Event subscription model
 - [ ] Capability discovery document at `/.well-known/agp`
 - [ ] Conformance test runner
 
-## 0.3 — Safety, privacy, and trust
+## 0.3: Safety, privacy, and trust
 
 - [ ] Normative authorization model
 - [ ] Data minimization rules for Access Profiles
@@ -36,13 +36,13 @@ AGP is currently an experimental interoperability prototype. The roadmap priorit
 - [ ] Restricted action classes for physical motion, security, financial, and destructive operations
 - [ ] Threat model and security review
 
-## 0.4 — Real-world pilots
+## 0.4: Real-world pilots
 
 - [ ] Public-service kiosk pilot
 - [ ] Smart-home/device pilot
 - [ ] Drone or robotics pilot
 - [ ] Screen-reader/assistive-technology prototype client
-- [ ] On-device Spectacles usability test of `examples/specs/lens-project/` (source complete, hardware-untested, including its `AgpParameterSlider` numeric-parameter control) — plus a multi-field/dial control for parameter shapes the slider doesn't cover (object, array, enum-only)
+- [ ] On-device Spectacles usability test of `examples/specs/lens-project/` (source complete, hardware-untested, including its `AgpParameterSlider` numeric-parameter control): plus a multi-field/dial control for parameter shapes the slider doesn't cover (object, array, enum-only)
 - [ ] Usability study with disabled participants and accessibility practitioners
 
 ## 1.0 candidate
@@ -53,20 +53,20 @@ Potential standardization paths to evaluate after the prototype is validated inc
 
 ## Milestone plan and acceptance criteria
 
-Ordered by dependency, not calendar time — this repo does not commit to
+Ordered by dependency, not calendar time: this repo does not commit to
 dates it doesn't control. Each milestone's acceptance criteria are meant
 to be checked, not asserted: if a criterion can't be verified (no
 hardware, no participants yet), the milestone is not done, it's blocked,
 and the roadmap should say so rather than checking it off anyway.
 
-**M1 — Fix the audit findings that touch trust and correctness**
+**M1: Fix the audit findings that touch trust and correctness**
 (`docs/capability-matrix.md`, Findings A–G)
 - [x] A: Lens authorization prompt visibly labeled as simulated.
 - [x] B: Confirmation bound to immutable, validated parameters; a changed
       parameter after confirmation requires a new proposal and cannot
       reuse an existing confirmation. Acceptance: a test that confirms
       one parameter value, then calls execute with a different value, and
-      asserts it is rejected — not just that the "right" path works.
+      asserts it is rejected: not just that the "right" path works.
 - [x] C: WoT state projection separates observed values from schema
       defaults and excludes write-only properties. Acceptance: a test
       Thing Description with a `default` on a property that has never
@@ -79,7 +79,7 @@ and the roadmap should say so rather than checking it off anyway.
       schemas it can't represent instead of silently coercing them.
       Acceptance: a test with an unsupported schema type asserts the
       adapter either preserves enough structure to round-trip it or
-      throws/flags it — never silently emits `type: "string"`.
+      throws/flags it: never silently emits `type: "string"`.
       Verified: `tests/wot-adapter-test.mjs`; `schema/access-graph.schema.json`
       updated to allow the newly-honest `object`/`array`/`unsupported`
       parameter types.
@@ -105,13 +105,13 @@ and the roadmap should say so rather than checking it off anyway.
       "declared"` so an unreviewed claim is visible rather than silently
       indistinguishable from a reviewed one. Residual gap, not closable
       client-side: without a supplied policy, a device can still mislabel
-      its own category — see `docs/capability-matrix.md`, Finding G.
+      its own category: see `docs/capability-matrix.md`, Finding G.
 
-**M2 — Execution service and browser reference workflow**
+**M2: Execution service and browser reference workflow**
 - [ ] One execution integration chosen and implemented (`node-wot` for
       WoT-sourced actions, evaluated per `docs/adr-0001-wot-reuse.md`).
       Home Assistant's WebSocket API evaluated as a second, later backend
-      for real-device bridging — not built in this milestone. Home
+      for real-device bridging: not built in this milestone. Home
       Assistant's `call_service` API has no risk classification of its
       own (`docs/adr-0001-wot-reuse.md`, item 5), so whichever backend is
       built second needs its own reviewed `domain`/`service` → category
@@ -133,11 +133,11 @@ and the roadmap should say so rather than checking it off anyway.
       `execute()` since state can change in between; an unauthenticated
       caller never reaches dispatch. See `service/README.md` for what
       this does and does not close (authorization is still simulated by
-      default — now a pluggable, server-owned decision point, not a
+      default: now a pluggable, server-owned decision point, not a
       solved one) and `tests/execution-service-test.mjs` /
       `tests/execution-http-server-test.mjs`.
 - [ ] Browser reference client: `examples/execution-client/` is a new
-      example (not `examples/smart-device/` rewired — that stays as the
+      example (not `examples/smart-device/` rewired: that stays as the
       pure in-process/client-side demo) that talks to `service/` over
       real HTTP. Every gate/outcome state was manually clicked through
       live over real HTTP, not just covered by the automated suite:
@@ -145,19 +145,19 @@ and the roadmap should say so rather than checking it off anyway.
       target-temperature change (`targetTemperature` actually moved,
       state version advanced); authorization denial; disconnection
       (stopping the service mid-session showed a distinct state rather
-      than stale data); cancel-before-dispatch; and dispatch timeout —
+      than stale data); cancel-before-dispatch; and dispatch timeout,
       which turned up a genuinely useful unplanned result: a dispatch
       forced to run past `dispatchTimeoutMs` correctly reported
       "unknown, don't assume it failed," then actually succeeded seconds
       later in the background, and the next action attempt correctly hit
-      `STALE_STATE` and auto-recovered — the real race this design exists
+      `STALE_STATE` and auto-recovered: the real race this design exists
       to handle, observed actually happening. The one remaining gap: no
       actual screen reader was used to verify the page (native
       buttons/range inputs and `aria-live` regions are used throughout,
       keyboard-operable by construction, but "screen-reader-operable" is
-      not yet a checked claim — that's the only reason this item stays
+      not yet a checked claim: that's the only reason this item stays
       unchecked). "Switch one real lamp on/off" was moved out of this
-      criterion — that's M3's job (a real device), not this one (a real
+      criterion: that's M3's job (a real device), not this one (a real
       service in front of a still-simulated device).
 - [ ] Accessible task inspector (`docs/audit-2026-09-22.md` item 3):
       `ExecutionService.inspect()` / `GET /devices/:id/inspect` and its
@@ -173,7 +173,7 @@ and the roadmap should say so rather than checking it off anyway.
       confirmed through the browser-automation tool used for this check
       (it also failed on the page's pre-existing, already-shipped
       `<details>` block, so this reads as a tool limitation against
-      native UA default actions, not a markup defect — but it is still
+      native UA default actions, not a markup defect: but it is still
       an unconfirmed claim, not a verified one); and, same as the
       browser reference client above, no real screen reader has been
       used against this page.
@@ -182,8 +182,8 @@ and the roadmap should say so rather than checking it off anyway.
       object's declared `inputs`/`outputs` against what the current
       client session reports, explains any gap in plain language, names
       a working alternative when one exists, and never blocks an action
-      on the result. It takes no `profile` argument — a capability gap
-      is a fact about the session, never a diagnosis about the person —
+      on the result. It takes no `profile` argument: a capability gap
+      is a fact about the session, never a diagnosis about the person,
       and that guarantee is checked by an arity assertion in the test,
       not just stated in a comment. Tested
       (`tests/capability-negotiation-test.mjs`: full/partial/no match on
@@ -198,7 +198,7 @@ and the roadmap should say so rather than checking it off anyway.
       checkboxes are a manual simulation, not real capability detection
       from an actual device or browser.
 
-**M3 — Real device connected, SPECS client compiled and integrated**
+**M3: Real device connected, SPECS client compiled and integrated**
 - [ ] One real lamp switched on/off end-to-end through the execution
       service (heating, locks, robot motion, and drone flight stay
       simulated until the execution model from M2 has been reviewed).
@@ -216,11 +216,11 @@ and the roadmap should say so rather than checking it off anyway.
       command each produce a distinct, understandable outcome rather than
       a silent failure or a guessed action.
 
-**M4 — On-device Spectacles test and formative accessibility study**
+**M4: On-device Spectacles test and formative accessibility study**
 - [ ] Hand tracking and exact-phrase ASR tested on physical Spectacles
       hardware, including denied microphone/network permission and a
       speech recognition error, not only the happy path. ASR does not run
-      in desktop preview — this criterion is not satisfiable without
+      in desktop preview: this criterion is not satisfiable without
       hardware access, and should stay unchecked (not assumed) until it
       is.
 - [ ] A small paid formative study (roughly 5–8 participants whose access
@@ -228,26 +228,26 @@ and the roadmap should say so rather than checking it off anyway.
       interface and the AGP-driven one on the same tasks, measuring
       independent completion, errors/unintended actions, assistance
       required, effort/fatigue, understanding of state and outcomes, and
-      recovery after errors — combined with an expert accessibility
+      recovery after errors: combined with an expert accessibility
       evaluation using the assistive technologies participants actually
       use. Acceptance: a written report of what was measured and found,
       including negative results, not a marketing summary.
 - [ ] Findings from the study are triaged into fixes before any pilot
       conversation, not deferred past it.
 
-**M5 — External pilot and independent implementation**
+**M5: External pilot and independent implementation**
 - [ ] A scoped, paid pilot with defined acceptance criteria agreed before
       the work starts (not after).
 - [ ] An outside developer (not the original author) builds a small
       integration from the published documentation alone, without
       side-channel help. Acceptance: they either succeed, in which case
       the documentation is validated, or their blockers are logged as
-      documentation/API defects to fix — this is a test of the docs, not
+      documentation/API defects to fix: this is a test of the docs, not
       of the developer.
 - [ ] An honest implementation report is published, including what did
       not work.
 
-**M6 — Standardization conversation**
+**M6: Standardization conversation**
 - [ ] Prior art, unmet requirements, supported mappings, compatibility
       rules, testable assertions, and independent implementation results
       are written up (this document plus `docs/prior-art-and-positioning.md`

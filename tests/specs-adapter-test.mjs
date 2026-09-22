@@ -78,7 +78,7 @@ thermostatSession.confirm(true);
 thermostatSession.provideAuthorization(true);
 
 if (!(await throwsAsync(() => thermostatSession.execute({ value: 25 })))) {
-  throw new Error("execute() must reject parameters that differ from what was confirmed — changed parameters cannot reuse confirmation");
+  throw new Error("execute() must reject parameters that differ from what was confirmed: changed parameters cannot reuse confirmation");
 }
 if (!thermostatSession.pending || thermostatSession.pending.parameters.value !== 19) {
   throw new Error("A rejected execute() attempt must not consume or alter the confirmed proposal");

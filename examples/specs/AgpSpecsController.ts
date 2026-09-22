@@ -16,7 +16,7 @@ export interface SpecsSurface {
 export interface AgpSpecsSession {
   /**
    * Parameters are validated and bound to the proposal here, at request
-   * time — not supplied later at execute(). This is what makes
+   * time: not supplied later at execute(). This is what makes
    * confirmation mean something: the thing a user confirms is the same
    * thing that runs, because there is nowhere else for the parameters to
    * come from by the time execute() is called.
@@ -25,7 +25,7 @@ export interface AgpSpecsSession {
   confirm(accepted: boolean): { status: SpecsActionState; message: string };
   provideAuthorization(result: boolean): { status: SpecsActionState; message: string };
   /**
-   * Runs the bound proposal. Does not take new parameters — an
+   * Runs the bound proposal. Does not take new parameters: an
    * implementation should reject (not silently accept) any attempt to
    * pass parameters that differ from what was bound at request().
    */

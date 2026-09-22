@@ -10,7 +10,7 @@ const LARGE_TEXT_SIZE = 72;
 /**
  * World-locked accessible control panel. One AGP action = one control
  * (button or slider), built from adapters/specs/index.js
- * `toSpecsView(...)` — the same view model the browser demo
+ * `toSpecsView(...)`: the same view model the browser demo
  * (examples/smart-device/) renders as HTML. This class only applies
  * presentation flags the adapter already computed (largeControls /
  * highContrast / reduceMotion / oneStepAtATime); it makes no accessibility
@@ -19,11 +19,11 @@ const LARGE_TEXT_SIZE = 72;
  * A zero-parameter action (e.g. eco mode, emergency shutdown) renders as a
  * button. An action whose only parameter is a single numeric `value` with
  * both `minimum` and `maximum` declared (the shape a WoT property write
- * like write_targettemperature produces — adapters/wot/index.js
+ * like write_targettemperature produces: adapters/wot/index.js
  * schemaParameter) renders as a slider (AgpParameterSlider), matching the
  * browser demo's range-input control. Any other parameterized shape (an
  * object with multiple properties, an array, an enum-only string, …) is
- * still shown as read-only state rather than a half-built input control —
+ * still shown as read-only state rather than a half-built input control:
  * this narrower slider support does not claim to handle every possible
  * parameter shape.
  */

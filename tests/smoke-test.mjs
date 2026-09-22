@@ -33,7 +33,7 @@ if (graph.get("drone-01").state.recording !== true) throw new Error("State did n
 
 // resolveAction() (the actual gate SpecsActionSession uses) and
 // renderControls() (what a client's UI is built from) must agree on
-// whether an action requires confirmation — they used to be two separate
+// whether an action requires confirmation: they used to be two separate
 // computations, and renderControls never checked a profile's
 // interaction.confirmation_for category list, only risk. An action whose
 // ONLY confirmation trigger is its category (not risk, not an explicit

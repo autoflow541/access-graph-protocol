@@ -18,7 +18,7 @@ export interface AgpSpecsSurface {
 
 /**
  * Lens-side equivalent of examples/specs/AgpSpecsController.ts. It contains
- * no device APIs and no authorization logic of its own — confirmation and
+ * no device APIs and no authorization logic of its own: confirmation and
  * authorization stay two separate gates enforced by SpecsActionSession, and
  * this controller never resolves either gate itself. Hand input, voice
  * input, and gaze/targeting all call the SAME selectAction/confirm/authorize
@@ -64,7 +64,7 @@ export class AgpSpecsSessionController extends BaseScriptComponent {
   /**
    * Entry point for a hand-input trigger OR an exact-match voice command.
    * Neither is authorization. `parameters` (if the action needs any) are
-   * validated and bound to the proposal here — AgpSpecsSessionController
+   * validated and bound to the proposal here: AgpSpecsSessionController
    * never lets confirmation happen against one set of parameters and
    * execution happen against another.
    */
@@ -81,7 +81,7 @@ export class AgpSpecsSessionController extends BaseScriptComponent {
 
   /**
    * A dedicated, separate authorization step. This demo simulates the
-   * underlying service's authorization decision — a real integration must
+   * underlying service's authorization decision: a real integration must
    * replace `granted` with the result of that service's own auth flow
    * (paired-device approval, account confirmation, PIN, etc.), never with
    * anything derived from voice/gaze/hand/possession-of-glasses signals.
@@ -115,7 +115,7 @@ export class AgpSpecsSessionController extends BaseScriptComponent {
 
   private broadcastPrompt(message: string, status: SpecsActionState) {
     this.renderPanel();
-    // adapters/specs/index.js's message text stays platform-neutral — it
+    // adapters/specs/index.js's message text stays platform-neutral: it
     // doesn't know whether it's backed by a simulation or a real
     // device/account service. This reference project's authorization
     // executor IS a simulation (see authorizationFinished above), so the

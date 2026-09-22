@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// Boots a real, listening ExecutionService instance for manual testing —
+// Boots a real, listening ExecutionService instance for manual testing:
 // e.g. `npm run service:dev`, then curl it. Uses the same simulated
 // thermostat Thing Description as examples/smart-device/app.js and
 // examples/specs/lens-project/Assets/Scripts/AgpDeviceSource.ts, so
 // there's one canonical "first connected device" fixture, not a third
-// copy. The device stays simulated — this script does not connect to a
+// copy. The device stays simulated: this script does not connect to a
 // real Thing, matching NEXT.md ("Keep device invocation simulated until
 // service checks are independently tested").
 import { AccessGraph } from "../sdk/javascript/agp.js";

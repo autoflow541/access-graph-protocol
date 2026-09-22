@@ -62,7 +62,7 @@ export class AccessGraph {
 // renderControls checked risk but never checked whether the action's
 // category was in the Access Profile's confirmation_for list, so a
 // category-triggered confirmation gate could be silently invisible in the
-// UI while still correctly enforced by resolveAction — the safety gate
+// UI while still correctly enforced by resolveAction: the safety gate
 // itself was never bypassed, but a user (or a screen reader reading the
 // cue) had no warning a confirmation step was coming.
 function requiresConfirmationFor(action, profile) {
@@ -189,7 +189,7 @@ function assertBasicObject(object) {
 // generated id through it so collisions are disambiguated within that
 // call, without adapters re-implementing this independently (and
 // re-introducing the same bug in one adapter after fixing it in another
-// — which is exactly how this became a shared utility instead of two
+//: which is exactly how this became a shared utility instead of two
 // separate copies).
 //
 // Disambiguation checks the candidate against every id already handed
