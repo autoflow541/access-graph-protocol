@@ -5,6 +5,14 @@ What AGP 0.1 actually does today, verified against source (not aspirational).
 from `examples/*/`. Update this file whenever an adapter or client's real
 behavior changes — it is a source-of-truth check, not a marketing page.
 
+The 0.1.4 fixes below (C–G) were themselves independently re-verified
+against 0.1.4 and found to contain four regressions — a claim of "fixed"
+in one release is not treated as proof past that release. 0.1.5 fixed
+those four (object/array parameter validation, proposal tamper-resistance,
+a three-way id collision, and a multi-form authorization gap); see
+`CHANGELOG.md`'s 0.1.5 entry for specifics. The table below reflects the
+current (0.1.5) state.
+
 ## Adapters
 
 | Capability | ARIA (`adapters/aria/`) | WoT (`adapters/wot/`) | SPECS (`adapters/specs/`) |
@@ -43,9 +51,12 @@ behavior changes — it is a source-of-truth check, not a marketing page.
 | D | WoT parameter schema translation silently drops unsupported types to `"string"` and marks everything `required: true` | **Fixed** — `adapters/wot/index.js` `schemaParameter`/`inputParameters`; `schema/access-graph.schema.json`'s parameter `type` enum extended to include `object`/`array`/`unsupported`. `tests/wot-adapter-test.mjs` ("Finding D") |
 | E | `stableId()` has no collision detection; colliding ids silently overwrite each other in `AccessGraph` | **Fixed** — `adapters/wot/index.js` `createIdAllocator`, used per entry-point call; original source name preserved on `metadata.wot_name`. `tests/wot-adapter-test.mjs` ("Finding E") |
 | F | Authorization requirement is derived only from top-level `td.security`, ignoring per-form overrides and security-requirement combinations | **Fixed** — `adapters/wot/index.js` `requiresAuthorization`/`formSecuritySchemes` now reads per-affordance form overrides. `tests/wot-adapter-test.mjs` ("Finding F") |
-| G | Source-declared `x-agp-risk` / `x-agp-confirmation` have no trust boundary from AGP's own policy — a device can self-declare a dangerous action as low-risk | **Fixed for the risk/confirmation value itself** — `adapters/wot/index.js` `CATEGORY_RISK_FLOOR`/`CATEGORY_CONFIRMATION_FLOOR`/`riskFor`/`confirmationFor`: a source can raise but never lower risk/confirmation for `physical_safety`/`security`/`financial`/`destructive` categories. **Not fixed**: the category itself (`x-agp-category`) is still source-declared, so a device could still mislabel a dangerous action to dodge the floor — closing that needs category classification from a reviewed/allowlisted source, tracked in `ROADMAP.md`, not solved by a client-side adapter. `tests/wot-adapter-test.mjs` ("Finding G") |
+| G | Source-declared `x-agp-risk` / `x-agp-confirmation` have no trust boundary from AGP's own policy — a device can self-declare a dangerous action as low-risk | **Fixed for the risk/confirmation value** — a source can raise but never lower risk/confirmation for `physical_safety`/`security`/`financial`/`destructive` categories (`CATEGORY_RISK_FLOOR`/`CATEGORY_CONFIRMATION_FLOOR`). **Category mislabeling mitigated, not eliminated** — `options.categoryPolicy` lets a caller who has reviewed a device supply its real category, overriding a mismatched `x-agp-category` claim and subjecting it to the same floor. Every action now carries `metadata.category_trust: "reviewed" \| "declared"`, so an unreviewed (and therefore still-gameable) category claim is visible rather than indistinguishable from a reviewed one. Without a supplied policy, a device can still mislabel itself — no client-side adapter can independently verify a category claim; that residual case is now at least *visible*, not silent. `tests/wot-adapter-test.mjs` ("Finding G", "Finding G, category gap") |
 
 All seven findings from the source-inspection audit are addressed as of
-this release, with the one documented exception noted under G (category
-trust). Each fix has a corresponding regression test — see
-`tests/wot-adapter-test.mjs` and `tests/specs-adapter-test.mjs`.
+this release. G's category-mislabeling case is mitigated (a reviewed
+override mechanism exists and unreviewed claims are now marked) rather
+than fully eliminated — full elimination needs category ground truth from
+somewhere other than the device itself, which is inherently outside a
+client-side adapter's reach. Each fix has a corresponding regression
+test — see `tests/wot-adapter-test.mjs` and `tests/specs-adapter-test.mjs`.

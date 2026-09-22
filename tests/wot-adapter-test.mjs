@@ -107,6 +107,25 @@ if (!originalNames.includes("Target Temperature") || !originalNames.includes("Ta
   throw new Error("The original source name must be preserved on each action despite the id collision");
 }
 
+// Reported regression: a THIRD name colliding on the same base could reuse
+// a suffix already taken by an unrelated, naturally-suffixed name (e.g.
+// "a", "a-2" (natural), "a" again -> "a", "a-2", "a-2" instead of
+// "a", "a-2", "a-3"). The allocator must check every id already handed
+// out, not just its own per-base counter.
+const tripleCollisionTd = {
+  title: "Triple collision test",
+  properties: {
+    A: { type: "number" }, // -> a
+    "A-2": { type: "number" }, // -> a-2, naturally, no collision
+    "A ": { type: "number" } // -> a, collides with the first
+  }
+};
+const tripleObject = thingDescriptionToAgp(tripleCollisionTd);
+const tripleIds = tripleObject.actions.filter((action) => action.id.startsWith("write_")).map((action) => action.id);
+if (new Set(tripleIds).size !== 3) {
+  throw new Error(`A third colliding name must not reuse an id already taken by an unrelated entry (got ${JSON.stringify(tripleIds)})`);
+}
+
 // --- Finding F: per-form security overrides ----------------------------
 const formTd = {
   title: "Form security override test",
@@ -122,6 +141,30 @@ const dangerous = formObject.actions.find((action) => action.metadata.wot_name =
 const safe = formObject.actions.find((action) => action.metadata.wot_name === "safeAction");
 if (!dangerous.authorization.required) throw new Error("A form-level security override must be honored over the Thing-level default");
 if (safe.authorization.required) throw new Error("An action without a form override should still inherit the Thing-level nosec default");
+
+// Reported regression: an affordance with MULTIPLE forms, where only one
+// form declares an explicit (open) override, must not let that override
+// mask a sibling form that has none and so inherits a Thing-level
+// default which DOES require authorization.
+const mixedFormsTd = {
+  title: "Mixed forms test",
+  security: "bearer_sc",
+  securityDefinitions: { nosec_sc: { scheme: "nosec" }, bearer_sc: { scheme: "bearer" } },
+  actions: {
+    mixedAction: {
+      title: "Mixed action",
+      forms: [
+        { href: "/open", security: "nosec_sc" }, // explicitly open
+        { href: "/secure" } // no override: inherits the Thing-level bearer_sc default
+      ]
+    }
+  }
+};
+const mixedObject = thingDescriptionToAgp(mixedFormsTd);
+const mixed = mixedObject.actions.find((action) => action.metadata.wot_name === "mixedAction");
+if (!mixed.authorization.required) {
+  throw new Error("A form inheriting the Thing-level default must not be masked by a sibling form's explicit nosec override");
+}
 
 // --- Finding G: source-declared risk/confirmation cannot undercut policy
 const policyTd = {
@@ -143,5 +186,57 @@ if (RISK_ORDER.indexOf(unlock.risk) < RISK_ORDER.indexOf("high")) {
   throw new Error("A source-declared low risk must not undercut the physical_safety policy floor");
 }
 if (!unlock.confirmation) throw new Error("A source-declared confirmation:false must not undercut the physical_safety policy floor");
+if (unlock.metadata.category_trust !== "declared") {
+  throw new Error("A category with no caller-supplied review must be marked as unreviewed (category_trust: 'declared')");
+}
+
+// --- Finding G, category gap: a reviewed categoryPolicy can correct a --
+// mislabeled source-declared category, closing the loophole the floor
+// above doesn't cover on its own: a device claiming a SAFE category for a
+// dangerous action.
+const mislabeledTd = {
+  title: "Category trust test",
+  security: "nosec_sc",
+  securityDefinitions: { nosec_sc: { scheme: "nosec" } },
+  actions: {
+    unlockDoor: {
+      title: "Unlock door",
+      "x-agp-risk": "none",
+      "x-agp-confirmation": false,
+      "x-agp-category": "device_control" // mislabeled: this is really physical_safety
+    }
+  }
+};
+
+// Without a reviewed policy, the mislabel is honored for the category
+// itself (there is no ground truth to correct it from) but is visibly
+// marked unreviewed, and its risk/confirmation are NOT floored (this is
+// the residual, documented gap).
+const unreviewed = thingDescriptionToAgp(mislabeledTd);
+const unreviewedAction = unreviewed.actions.find((action) => action.metadata.wot_name === "unlockDoor");
+if (unreviewedAction.category !== "device_control") throw new Error("Sanity check: category should be exactly as declared without a policy");
+if (unreviewedAction.metadata.category_trust !== "declared") throw new Error("An unreviewed category must be marked 'declared'");
+
+// A caller-supplied, reviewed policy (object form) can correct the
+// mislabeled category, and the corrected category is then subject to the
+// same risk/confirmation floor as if it had been honestly declared.
+const reviewedByObject = thingDescriptionToAgp(mislabeledTd, { categoryPolicy: { unlockDoor: "physical_safety" } });
+const reviewedAction = reviewedByObject.actions.find((action) => action.metadata.wot_name === "unlockDoor");
+if (reviewedAction.category !== "physical_safety") throw new Error("A reviewed category policy must override a mismatched source-declared category");
+if (reviewedAction.metadata.category_trust !== "reviewed") throw new Error("A caller-supplied category must be marked 'reviewed'");
+if (RISK_ORDER.indexOf(reviewedAction.risk) < RISK_ORDER.indexOf("high")) {
+  throw new Error("A reviewed physical_safety category must enforce the risk floor even though the source under-declared it");
+}
+if (!reviewedAction.confirmation) throw new Error("A reviewed physical_safety category must enforce the confirmation floor");
+
+// The function form supports bulk/role-based review rules instead of
+// listing every action id by name.
+const reviewedByFunction = thingDescriptionToAgp(mislabeledTd, {
+  categoryPolicy: ({ name }) => (name === "unlockDoor" ? "physical_safety" : undefined)
+});
+const functionReviewed = reviewedByFunction.actions.find((action) => action.metadata.wot_name === "unlockDoor");
+if (functionReviewed.category !== "physical_safety" || functionReviewed.metadata.category_trust !== "reviewed") {
+  throw new Error("A function-form categoryPolicy must be able to review and correct a category the same way the object form does");
+}
 
 console.log("WoT adapter test passed");

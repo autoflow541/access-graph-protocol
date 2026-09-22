@@ -114,7 +114,7 @@ function assertBasicObject(object) {
   if (object.agp && object.agp !== AGP_VERSION) throw new Error(`Unsupported AGP version: ${object.agp}`);
 }
 
-function structuredCloneSafe(value) {
+export function structuredCloneSafe(value) {
   if (typeof structuredClone === "function") return structuredClone(value);
   return JSON.parse(JSON.stringify(value));
 }

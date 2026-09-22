@@ -1,5 +1,58 @@
 # Changelog
 
+## 0.1.5 — 2026-09-22
+
+Fixes four regressions in 0.1.4's fixes, independently reproduced and
+reported against commit `7441eda` (not just read from commit messages).
+Each is now covered by a regression test that was verified failing
+against the pre-fix code before the fix, and verified passing after —
+and by direct inspection of the actual output, not just a green exit code.
+
+- **Fixed**: `adapters/specs/index.js` `typeMatches()` had no branch for
+  the `object`/`array` parameter types `adapters/wot/index.js` can now
+  produce (0.1.4, finding D) — it fell through to a `typeof value ===
+  "string"` check for anything else, so a genuinely valid object
+  parameter was rejected and a bare string supplied in its place was
+  wrongly accepted. `typeMatches` now recursively validates object
+  (`properties`) and array (`items`) structure, and an `unsupported`
+  parameter schema is rejected outright by `validateParameters` rather
+  than reaching type matching at all — this session cannot verify a
+  value against a structure the adapter itself flagged as unrepresentable.
+- **Fixed**: a "confirmed" proposal could still be mutated after
+  confirmation — `pending` was a plain, unfrozen, publicly-writable
+  property, and `confirm()`/`provideAuthorization()` mutated it in place.
+  `SpecsActionSession` now keeps its proposal in a constructor-closure
+  variable with no external reference, exposes `pending` only through a
+  getter-only accessor (assignment throws), and deep-freezes every
+  proposal object before storing it, so a write to a nested field throws
+  too. State transitions build a new frozen object instead of mutating
+  the previous one. (Uses closures rather than ES2022 `#private` class
+  fields because this file is synced verbatim into the Lens Studio
+  project, whose JS engine's support for `#private` is unverified.)
+  `sdk/javascript/agp.js`'s existing `structuredCloneSafe` is now exported
+  and used to deep-clone parameter values during validation, so the bound
+  proposal never shares object/array references with the caller's
+  original argument either.
+- **Fixed**: `adapters/wot/index.js`'s `createIdAllocator()` disambiguated
+  a colliding id by incrementing a per-base-name counter without checking
+  whether the resulting suffixed id was itself already taken by an
+  unrelated, naturally-suffixed name — three distinct names could produce
+  `a`, `a-2`, `a-2` instead of `a`, `a-2`, `a-3`. It now checks the
+  candidate against every id already handed out and keeps incrementing
+  until it finds one that's actually free.
+- **Fixed**: `requiresAuthorization()` only inspected forms that
+  explicitly declared their own `security`, and ignored forms with none —
+  so one form declaring an open (`nosec`) override could mask a sibling
+  form that had no override and so inherited a Thing-level default that
+  DID require authentication, incorrectly returning
+  `authorization.required: false` for the affordance as a whole. It now
+  resolves each form's own effective security independently (its own
+  override, or the Thing-level default when it has none) and requires
+  authorization if any of them would.
+
+`docs/capability-matrix.md` and `tests/wot-adapter-test.mjs` /
+`tests/specs-adapter-test.mjs` updated accordingly.
+
 ## 0.1.4 — 2026-09-22
 
 Fixes the five remaining audit findings (C–G) from 0.1.3's source

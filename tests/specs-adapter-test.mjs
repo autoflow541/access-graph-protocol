@@ -89,6 +89,69 @@ if (thermostatResult.status !== "executed" || thermostatResult.result.value !== 
   throw new Error("execute() must run with the parameters bound at request time, not any value supplied later");
 }
 
+// --- Structural (object/array) parameter validation (reported regression
+// after finding D: object schemas produced by adapters/wot/index.js were
+// rejected, and a bare string was wrongly accepted in their place) -----
+graph.register({
+  id: "hall-thermostat-settings",
+  role: "thermostat",
+  label: "Hall thermostat settings",
+  state: {},
+  actions: [{
+    id: "write_settings",
+    label: "Set settings",
+    risk: "medium",
+    confirmation: true,
+    category: "device_control",
+    authorization: { required: false },
+    parameters: {
+      value: {
+        type: "object",
+        required: true,
+        properties: {
+          mode: { type: "string", required: true },
+          level: { type: "number", required: false }
+        }
+      }
+    }
+  }]
+});
+
+const settingsSession = new SpecsActionSession(graph, profile, async (_o, _a, p) => p);
+if (throws(() => settingsSession.request("hall-thermostat-settings", "write_settings", { value: { mode: "eco", level: 3 } }))) {
+  throw new Error("A valid object parameter matching the declared schema must be accepted, not rejected");
+}
+settingsSession.cancel();
+if (!throws(() => settingsSession.request("hall-thermostat-settings", "write_settings", { value: "not-an-object" }))) {
+  throw new Error("A string must not be accepted in place of a declared object parameter");
+}
+settingsSession.cancel();
+if (!throws(() => settingsSession.request("hall-thermostat-settings", "write_settings", { value: {} }))) {
+  throw new Error("An object missing a required nested property must be rejected");
+}
+
+// --- Proposal tamper resistance (reported regression: a "confirmed"
+// proposal could still be mutated after confirmation, in place or by
+// wholesale replacement of session.pending) ------------------------------
+const tamperSession = new SpecsActionSession(graph, profile, async (_o, _a, p) => p);
+tamperSession.request("hall-thermostat", "write_targettemperature", { value: 20 });
+tamperSession.confirm(true);
+tamperSession.provideAuthorization(true);
+
+if (!throws(() => { tamperSession.pending.parameters.value = 999; })) {
+  throw new Error("Mutating a field of the confirmed proposal directly must throw, not silently succeed");
+}
+if (!throws(() => { tamperSession.pending = { objectId: "x", actionId: "y", parameters: {}, confirmed: true, authorized: true }; })) {
+  throw new Error("Replacing session.pending wholesale must throw, not silently succeed");
+}
+if (tamperSession.pending.parameters.value !== 20) {
+  throw new Error("A tamper attempt must not change the confirmed proposal's actual bound value");
+}
+const tamperResult = await tamperSession.execute();
+if (tamperResult.result.value !== 20) {
+  throw new Error("execute() must run with the originally confirmed value even after tamper attempts");
+}
+
 function throws(fn) {
   try {
     fn();

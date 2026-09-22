@@ -13,11 +13,19 @@ const PRIMITIVE_PARAMETER_TYPES = new Set(["string", "number", "integer", "boole
 // gates a safety-critical decision. See docs/prior-art-and-positioning.md
 // and docs/capability-matrix.md (audit finding G).
 //
-// The category itself is still source-declared (`x-agp-category`), so a
-// device could still mislabel a dangerous action as `device_control` to
-// dodge these floors entirely. Closing that fully needs category
-// classification from a reviewed/allowlisted source, not a client-side
-// adapter — tracked in ROADMAP.md, not solved here.
+// The category itself (`x-agp-category`) is ALSO source-declared, so a
+// device can still dodge these floors by mislabeling a dangerous action as
+// e.g. `device_control`. A client-side adapter has no independent way to
+// know a category claim is honest — closing that needs classification
+// from a reviewed/allowlisted source, not the device itself. `options.
+// categoryPolicy` (see resolveCategory below) is that mechanism: a caller
+// who has reviewed a specific device/role can supply the real category,
+// which then overrides the source's claim and is subject to the same
+// floors above. Every action's `metadata.category_trust` records whether
+// its category came from that reviewed policy ("reviewed") or only from
+// the source itself ("declared"), so a consumer can see — and choose to
+// treat with extra caution — an unreviewed claim, instead of the trust
+// status being silently assumed either way (audit finding G, category gap).
 const CATEGORY_RISK_FLOOR = {
   physical_safety: "high",
   security: "high",
@@ -38,8 +46,8 @@ export function thingDescriptionToAgp(td, options = {}) {
   const thingId = options.id || stableId(td.id || td.title || "thing");
   const allocateActionId = createIdAllocator();
   const actions = [
-    ...propertyActions(td, td.properties || {}, allocateActionId),
-    ...thingActions(td, td.actions || {}, allocateActionId)
+    ...propertyActions(td, td.properties || {}, allocateActionId, options.categoryPolicy),
+    ...thingActions(td, td.actions || {}, allocateActionId, options.categoryPolicy)
   ];
 
   const object = {
@@ -84,7 +92,7 @@ export function thingDescriptionToGraph(td, options = {}) {
       label: property.title || humanize(name),
       ...(property.description ? { description: property.description } : {}),
       state: knownValue === undefined ? {} : { value: knownValue },
-      actions: property.readOnly ? [] : propertyActions(td, { [name]: property }, createIdAllocator()),
+      actions: property.readOnly ? [] : propertyActions(td, { [name]: property }, createIdAllocator(), options.categoryPolicy),
       relationships: [{ type: "part_of", target: root.id }],
       outputs: ["data"],
       source: { type: "structured_api", confidence: 1, adapter: "w3c-wot-td-0.1" },
@@ -127,7 +135,7 @@ function readValue(property, suppliedValue) {
   return undefined;
 }
 
-function propertyActions(td, properties, allocateActionId) {
+function propertyActions(td, properties, allocateActionId, categoryPolicy) {
   const actions = [];
   for (const [name, property] of Object.entries(properties)) {
     const authorizationRequired = requiresAuthorization(td, property);
@@ -138,41 +146,67 @@ function propertyActions(td, properties, allocateActionId) {
         risk: "none",
         category: "information",
         authorization: { required: authorizationRequired },
-        metadata: { affordance: "property", wot_name: name }
+        metadata: { affordance: "property", wot_name: name, category_trust: "reviewed" }
       });
     }
     if (property.readOnly !== true) {
-      const category = extension(property, "category") || "device_control";
+      const resolved = resolveCategory(td, name, extension(property, "category"), categoryPolicy);
       actions.push({
         id: allocateActionId(`write_${stableId(name)}`),
         label: `Set ${property.title || humanize(name)}`,
-        risk: riskFor(property, category, "medium"),
-        confirmation: confirmationFor(property, category, true),
-        category,
+        risk: riskFor(property, resolved.category, "medium"),
+        confirmation: confirmationFor(property, resolved.category, true),
+        category: resolved.category,
         parameters: { value: schemaParameter(property, true) },
         authorization: { required: authorizationRequired },
-        metadata: { affordance: "property", wot_name: name }
+        metadata: { affordance: "property", wot_name: name, category_trust: resolved.trust }
       });
     }
   }
   return actions;
 }
 
-function thingActions(td, actions, allocateActionId) {
+function thingActions(td, actions, allocateActionId, categoryPolicy) {
   return Object.entries(actions).map(([name, action]) => {
-    const category = extension(action, "category") || "device_control";
+    const resolved = resolveCategory(td, name, extension(action, "category"), categoryPolicy);
     return {
       id: allocateActionId(stableId(name)),
       label: action.title || humanize(name),
       ...(action.description ? { description: action.description } : {}),
-      risk: riskFor(action, category, "medium"),
-      confirmation: confirmationFor(action, category, true),
-      category,
+      risk: riskFor(action, resolved.category, "medium"),
+      confirmation: confirmationFor(action, resolved.category, true),
+      category: resolved.category,
       ...(action.input ? { parameters: inputParameters(action.input) } : {}),
       authorization: { required: requiresAuthorization(td, action) },
-      metadata: { affordance: "action", wot_name: name }
+      metadata: { affordance: "action", wot_name: name, category_trust: resolved.trust }
     };
   });
+}
+
+// The only sound way to correct a self-declared category is an external
+// review, encoded here as a caller-supplied `categoryPolicy`: either a
+// function `({ td, name, declaredCategory }) => reviewedCategory` (for
+// bulk/role-based rules) or a plain object keyed by the affordance's
+// original WoT name (for per-action overrides). A category it returns is
+// trusted ("reviewed") and subject to the same floors as an honestly
+// self-declared one; anything else falls back to the TD's own
+// `x-agp-category` (or the "device_control" default) and is marked
+// "declared" — untrusted, not silently treated as equivalent to reviewed.
+// This does not detect a lie on its own; it gives an integrator who HAS
+// reviewed a device a way to correct one, and makes which actions have
+// NOT been reviewed visible instead of indistinguishable from those that
+// have (audit finding G, category gap; docs/capability-matrix.md).
+function resolveCategory(td, name, declaredCategory, categoryPolicy) {
+  let reviewed;
+  if (typeof categoryPolicy === "function") {
+    reviewed = categoryPolicy({ td, name, declaredCategory });
+  } else if (categoryPolicy && Object.prototype.hasOwnProperty.call(categoryPolicy, name)) {
+    reviewed = categoryPolicy[name];
+  }
+  if (typeof reviewed === "string" && reviewed) {
+    return { category: reviewed, trust: "reviewed" };
+  }
+  return { category: declaredCategory || "device_control", trust: "declared" };
 }
 
 function thingEvents(events) {
@@ -248,21 +282,31 @@ function schemaParameter(schema = {}, required = true) {
 // A form (WoT TD §5.3.4) can declare its own `security`, overriding the
 // Thing-level default for that specific interaction affordance. Reading
 // only `td.security` (as this adapter previously did) misses that
-// override entirely (audit finding F). When forms disagree or combine
-// multiple schemes, this fails toward requiring authorization rather than
-// picking an arbitrary one.
+// override entirely (audit finding F).
+//
+// An affordance can have MULTIPLE forms, and a form with no `security` of
+// its own inherits the Thing-level default rather than being exempt from
+// it. An earlier version only looked at forms that had an explicit
+// override and ignored every other form entirely — so one form
+// explicitly declaring "nosec" made the whole affordance look
+// unauthenticated even when a sibling form (with no override, and so
+// inheriting a Thing-level scheme that DOES require auth) was just as
+// valid a way to invoke it. This resolves each form's OWN effective
+// security independently and requires authorization if ANY of them would
+// — fail toward the more restrictive reading, never toward whichever
+// form happens to be open.
 function requiresAuthorization(td, affordance) {
-  const formOverride = formSecuritySchemes(affordance);
-  const security = formOverride !== null ? formOverride : normalizeSecurity(td.security);
-  if (security.length === 0) return true;
-  return !security.every((name) => td.securityDefinitions?.[name]?.scheme === "nosec");
+  const forms = Array.isArray(affordance?.forms) ? affordance.forms : [];
+  if (forms.length === 0) return securityRequiresAuth(td, normalizeSecurity(td.security));
+  return forms.some((form) => {
+    const effective = form.security !== undefined ? normalizeSecurity(form.security) : normalizeSecurity(td.security);
+    return securityRequiresAuth(td, effective);
+  });
 }
 
-function formSecuritySchemes(affordance) {
-  const forms = Array.isArray(affordance?.forms) ? affordance.forms : [];
-  const declared = forms.map((form) => form.security).filter((security) => security !== undefined);
-  if (declared.length === 0) return null;
-  return unique(declared.flatMap((security) => normalizeSecurity(security)));
+function securityRequiresAuth(td, security) {
+  if (security.length === 0) return true;
+  return !security.every((name) => td.securityDefinitions?.[name]?.scheme === "nosec");
 }
 
 function normalizeSecurity(security) {
@@ -320,12 +364,25 @@ function stableId(value) {
 // in AccessGraph (audit finding E). Each adapter entry point uses its own
 // allocator instance so collisions are only disambiguated within that
 // call's own id namespace, not across unrelated Things.
+//
+// Disambiguation checks the candidate against every id already handed
+// out, not just other collisions of the same base name: an earlier
+// version incremented a per-base counter without checking whether the
+// resulting suffixed id was itself already taken by a THIRD, unrelated
+// name that happened to normalize to that exact suffixed string (e.g.
+// one name naturally producing "a-2" while two other names both collide
+// on "a" — the second one used to also become "a-2", not "a-3").
 function createIdAllocator() {
-  const used = new Map();
+  const used = new Set();
   return function allocate(candidateId) {
-    const count = used.get(candidateId) || 0;
-    used.set(candidateId, count + 1);
-    return count === 0 ? candidateId : `${candidateId}-${count + 1}`;
+    let id = candidateId;
+    let suffix = 2;
+    while (used.has(id)) {
+      id = `${candidateId}-${suffix}`;
+      suffix += 1;
+    }
+    used.add(id);
+    return id;
   };
 }
 
