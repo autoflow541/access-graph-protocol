@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — proposal validation and audit
+
+- Enforce nested numeric bounds/enums and reject undeclared parameters.
+- Show target and parameter values in confirmation; support explicit top-level sensitive-field redaction.
+- Add opt-in proposal expiry with a testable clock and structured expiration code.
+- Add end-to-end adapter/session regression coverage, engineering audit, and prioritized pilot plan.
+- Refresh generated Lens adapter source; Lens compilation and hardware testing remain unverified.
+
 ## 0.1.9 — 2026-09-22
 
 Extends the same audit rigor applied to the WoT adapter (0.1.4/0.1.5) to

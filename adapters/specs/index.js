@@ -64,12 +64,26 @@ export function toSpecsView(object, profile = {}) {
  * scripts/sync-lens-assets.mjs.)
  */
 export class SpecsActionSession {
-  constructor(graph, profile = {}, executor = null) {
+  constructor(graph, profile = {}, executor = null, options = {}) {
     this.graph = graph;
     this.profile = profile;
     this.executor = executor;
 
+    // Expiry is opt-in until each client implements an accessible re-proposal flow.
+    const ttl = options.proposalTtlMs ?? null;
+    const now = options.now ?? Date.now;
+    if (ttl !== null && (!Number.isFinite(ttl) || ttl <= 0)) throw new Error("Invalid proposal TTL");
+    if (typeof now !== "function") throw new Error("Invalid proposal clock");
     let pendingProposal = null;
+    const requirePending = () => {
+      if (!pendingProposal) throw new Error("No pending SPECS action");
+      if (pendingProposal.expiresAt !== null && now() >= pendingProposal.expiresAt) {
+        pendingProposal = null;
+        const error = new Error("Proposal expired. Review and submit a new request.");
+        error.code = "PROPOSAL_EXPIRED";
+        throw error;
+      }
+    };
     Object.defineProperty(this, "pending", {
       enumerable: true,
       get: () => pendingProposal
@@ -82,6 +96,7 @@ export class SpecsActionSession {
         objectId,
         actionId,
         parameters: validatedParameters,
+        expiresAt: ttl === null ? null : now() + ttl,
         confirmed: !resolved.requiresConfirmation,
         authorized: !resolved.authorizationRequired
       });
@@ -89,12 +104,12 @@ export class SpecsActionSession {
         status: nextStatus(pendingProposal),
         object: resolved.object,
         action: resolved.action,
-        message: promptFor(resolved)
+        message: promptFor(resolved, validatedParameters)
       };
     };
 
     this.confirm = (accepted) => {
-      if (!pendingProposal) throw new Error("No pending SPECS action");
+      requirePending();
       if (!accepted) {
         pendingProposal = null;
         return { status: "cancelled", message: "Action cancelled." };
@@ -104,7 +119,7 @@ export class SpecsActionSession {
     };
 
     this.provideAuthorization = (result) => {
-      if (!pendingProposal) throw new Error("No pending SPECS action");
+      requirePending();
       if (result !== true) {
         pendingProposal = null;
         return { status: "denied", message: "Authorization denied." };
@@ -114,7 +129,7 @@ export class SpecsActionSession {
     };
 
     this.execute = async (parameters) => {
-      if (!pendingProposal) throw new Error("No pending SPECS action");
+      requirePending();
       const status = nextStatus(pendingProposal);
       if (status !== "ready") throw new Error(`Action is not ready: ${status}`);
       if (typeof this.executor !== "function") throw new Error("No device action executor configured");
@@ -161,8 +176,15 @@ function nextStatus(pending) {
   return "ready";
 }
 
-function promptFor(resolved) {
-  if (resolved.requiresConfirmation) return `Confirm ${resolved.action.label || humanize(resolved.action.id)}.`;
+function promptFor(resolved, parameters) {
+  if (resolved.requiresConfirmation) {
+    const values = Object.entries(parameters).map(([name, value]) => {
+      const schema = resolved.action.parameters?.[name];
+      const text = schema?.sensitive ? "[hidden]" : JSON.stringify(value);
+      return `${humanize(name)}: ${text}${schema?.unit ? ` ${schema.unit}` : ""}`;
+    });
+    return `Confirm ${resolved.action.label || humanize(resolved.action.id)} on ${resolved.object.label}.${values.length ? ` ${values.join("; ")}.` : ""}`;
+  }
   if (resolved.authorizationRequired) return "Complete authorization on the underlying service.";
   return "Action ready.";
 }
@@ -186,85 +208,76 @@ function normalize(value) {
 // unvalidated, unrecognized, or externally-mutable value can never reach
 // an executor.
 function validateParameters(action, parameters) {
-  const schema = action.parameters;
-  if (!schema) return {};
-
-  const supplied = parameters || {};
+  if (!parameters || typeof parameters !== "object" || Array.isArray(parameters)) {
+    throw new Error("Parameters must be an object");
+  }
+  const schema = action.parameters || {};
+  for (const name of Object.keys(parameters)) {
+    if (!Object.prototype.hasOwnProperty.call(schema, name)) throw new Error(`Unknown parameter "${name}"`);
+  }
   const validated = {};
   for (const [name, paramSchema] of Object.entries(schema)) {
-    const value = supplied[name];
+    const value = Object.prototype.hasOwnProperty.call(parameters, name) ? parameters[name] : undefined;
     if (value === undefined) {
       if (paramSchema.required) throw new Error(`Missing required parameter "${name}" for action ${action.id}`);
       continue;
     }
-    if (paramSchema.type === "unsupported") {
-      // adapters/wot/index.js flags a schema it could not represent
-      // structurally instead of silently coercing it (audit finding D).
-      // This session cannot verify a value against an unknown structure,
-      // so it fails closed here rather than binding an unverified value
-      // into a proposal that confirmation/authorization would then vouch
-      // for.
-      throw new Error(`Parameter "${name}" for action ${action.id} has a schema this session cannot validate and cannot be bound`);
-    }
-    if (!typeMatches(paramSchema, value)) {
-      throw new Error(`Parameter "${name}" for action ${action.id} must be of type ${paramSchema.type}`);
-    }
-    if (typeof value === "number") {
-      if (paramSchema.minimum !== undefined && value < paramSchema.minimum) {
-        throw new Error(`Parameter "${name}" for action ${action.id} is below minimum ${paramSchema.minimum}`);
-      }
-      if (paramSchema.maximum !== undefined && value > paramSchema.maximum) {
-        throw new Error(`Parameter "${name}" for action ${action.id} is above maximum ${paramSchema.maximum}`);
-      }
-    }
-    if (Array.isArray(paramSchema.enum) && !paramSchema.enum.includes(value)) {
-      throw new Error(`Parameter "${name}" for action ${action.id} must be one of: ${paramSchema.enum.join(", ")}`);
-    }
-    validated[name] = structuredCloneSafe(value);
+    validateValue(paramSchema, value, name);
+    Object.defineProperty(validated, name, { value: structuredCloneSafe(value), enumerable: true });
   }
   return validated;
 }
 
-// Recursively checks `value` against an AGP parameter schema
-// ($defs/parameter in schema/access-graph.schema.json), including the
-// object/array structure adapters/wot/index.js can now produce (audit
-// finding D) — the previous version only recognized
-// integer/number/boolean and treated every other declared type,
-// including "object" and "array", as "string": a real object was
-// rejected, and a string supplied in its place was wrongly accepted.
-// "unsupported" is handled by the caller (validateParameters), which
-// rejects it outright rather than reaching this function.
-function typeMatches(paramSchema, value) {
-  const type = paramSchema.type;
-  if (type === "integer") return Number.isInteger(value);
-  if (type === "number") return typeof value === "number" && Number.isFinite(value);
-  if (type === "boolean") return typeof value === "boolean";
-  if (type === "string") return typeof value === "string";
+// Validate bounds and enums at EVERY node, including array items.
+// This is the documented AGP subset, not a complete JSON Schema implementation.
+function validateValue(schema, value, path) {
+  const fail = (reason) => { throw new Error(`Parameter "${path}" ${reason}`); };
+  if (!schema || schema.unsupported || schema.type === "unsupported") fail("has an unsupported schema");
+  const type = schema.type;
+  const matches = type === "integer" ? Number.isSafeInteger(value)
+    : type === "number" ? typeof value === "number" && Number.isFinite(value)
+    : type === "boolean" ? typeof value === "boolean"
+    : type === "string" ? typeof value === "string"
+    : type === "array" ? Array.isArray(value)
+    : type === "object" ? value !== null && typeof value === "object" && !Array.isArray(value)
+      && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null)
+    : false;
+  if (!matches) fail(`must be of type ${type}`);
+  if (typeof value === "number") {
+    if (schema.minimum !== undefined && value < schema.minimum) fail(`is below minimum ${schema.minimum}`);
+    if (schema.maximum !== undefined && value > schema.maximum) fail(`is above maximum ${schema.maximum}`);
+  }
+  if (Array.isArray(schema.enum) && !schema.enum.some((choice) => JSON.stringify(canonical(choice)) === JSON.stringify(canonical(value)))) {
+    fail("is not an allowed value");
+  }
   if (type === "array") {
-    if (!Array.isArray(value)) return false;
-    return paramSchema.items ? value.every((item) => typeMatches(paramSchema.items, item)) : true;
+    if (!schema.items && value.length) fail("has no item schema; item validation is unsupported");
+    for (let i = 0; i < value.length; i++) validateValue(schema.items, value[i], `${path}[${i}]`);
   }
   if (type === "object") {
-    if (!value || typeof value !== "object" || Array.isArray(value)) return false;
-    if (!paramSchema.properties) return true;
-    return Object.entries(paramSchema.properties).every(([propName, propSchema]) => {
-      const propValue = value[propName];
-      if (propValue === undefined) return !propSchema.required;
-      return typeMatches(propSchema, propValue);
-    });
+    const properties = schema.properties || {};
+    for (const key of Object.keys(value)) {
+      if (!Object.prototype.hasOwnProperty.call(properties, key)) fail(`contains unknown property "${key}"`);
+    }
+    for (const [key, child] of Object.entries(properties)) {
+      const present = Object.prototype.hasOwnProperty.call(value, key) && value[key] !== undefined;
+      if (!present) {
+        if (child.required) fail(`is missing required property "${key}"`);
+      } else validateValue(child, value[key], `${path}.${key}`);
+    }
   }
-  // An unrecognized declared type is not a match — fail closed instead of
-  // guessing (this is the "strings accepted in place of a real type"
-  // failure mode the old fallback had).
-  return false;
+}
+
+function canonical(value) {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])]));
+  }
+  return value;
 }
 
 function parametersMatch(a, b) {
-  return JSON.stringify(sortedEntries(a)) === JSON.stringify(sortedEntries(b));
-}
-
-function sortedEntries(value) {
-  return Object.entries(value || {}).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+  return JSON.stringify(canonical(a)) === JSON.stringify(canonical(b));
 }
 
 // Recursively freezes an object graph so a stored proposal cannot be

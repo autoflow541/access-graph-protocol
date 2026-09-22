@@ -122,3 +122,7 @@ The current proof applies one Access Profile across a website, a WoT smart devic
 ## License
 
 Apache License 2.0. See `LICENSE`.
+
+## Current engineering audit
+
+See [the implementation audit](docs/audit-2026-09-22.md) for verified fixes, open limitations, prioritized features and pilot acceptance criteria. [NEXT.md](NEXT.md) scopes the execution-service milestone.
