@@ -14,8 +14,15 @@
 //
 // Same x-agp-* vocabulary as service/run-local.mjs's literal TD, so
 // adapters/wot/index.js (unmodified) converts this exactly the same way.
-import { Servient } from "@node-wot/core";
-import { HttpServer } from "@node-wot/binding-http";
+// Default-import + destructure, not named imports: node-wot ships CJS,
+// and Node's static named-export detection for CJS packages is not
+// reliable across every Node version/platform (confirmed: this repo's CI
+// failed on it while a named import worked locally). A default import
+// always works regardless, since it's just `module.exports` itself.
+import nodeWotCore from "@node-wot/core";
+import nodeWotHttp from "@node-wot/binding-http";
+const { Servient } = nodeWotCore;
+const { HttpServer } = nodeWotHttp;
 
 const port = Number(process.env.AGP_THING_PORT) || 8788;
 const address = process.env.AGP_THING_ADDRESS || "127.0.0.1";

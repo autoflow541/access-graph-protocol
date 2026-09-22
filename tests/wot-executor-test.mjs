@@ -1,12 +1,19 @@
 import assert from "node:assert/strict";
-import { Servient as ServerServient } from "@node-wot/core";
-import { HttpServer } from "@node-wot/binding-http";
-import { Servient as ClientServient } from "@node-wot/core";
-import { HttpClientFactory } from "@node-wot/binding-http";
+// Default-import + destructure, not named imports: node-wot ships CJS,
+// and Node's static named-export detection for CJS packages is not
+// reliable across every Node version/platform (this repo's CI failed on
+// a named import that worked locally). A default import always works.
+import nodeWotCore from "@node-wot/core";
+import nodeWotHttp from "@node-wot/binding-http";
 import { AccessGraph } from "../sdk/javascript/agp.js";
 import { thingDescriptionToAgp } from "../adapters/wot/index.js";
 import { ExecutionService } from "../service/execution-service.js";
 import { createWotExecutor } from "../service/wot-executor.mjs";
+
+const { Servient: ServerServient } = nodeWotCore;
+const { Servient: ClientServient } = nodeWotCore;
+const { HttpServer } = nodeWotHttp;
+const { HttpClientFactory } = nodeWotHttp;
 
 // A real node-wot Servient exposing a real Thing over real HTTP, on a
 // fixed test-only port: this is the same thing service/virtual-thermostat.mjs

@@ -12,13 +12,19 @@
 // literal object (run-local.mjs) or, as here, fetched live from a
 // running WoT server. That's the point: the adapter was never
 // simulation-specific to begin with.
-import { Servient } from "@node-wot/core";
-import { HttpClientFactory } from "@node-wot/binding-http";
+// Default-import + destructure, not named imports: see
+// service/virtual-thermostat.mjs's comment on why a named import from
+// this CJS package is not reliable across Node versions/platforms.
+import nodeWotCore from "@node-wot/core";
+import nodeWotHttp from "@node-wot/binding-http";
 import { AccessGraph } from "../sdk/javascript/agp.js";
 import { thingDescriptionToAgp } from "../adapters/wot/index.js";
 import { ExecutionService } from "./execution-service.js";
 import { createExecutionHttpServer } from "./http-server.js";
 import { createWotExecutor } from "./wot-executor.mjs";
+
+const { Servient } = nodeWotCore;
+const { HttpClientFactory } = nodeWotHttp;
 
 const thingUrl = process.env.AGP_THING_URL || "http://127.0.0.1:8788/hall-thermostat";
 
