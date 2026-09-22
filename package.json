@@ -1,17 +1,18 @@
 {
   "name": "access-graph-protocol",
-  "version": "0.1.20",
+  "version": "0.1.21",
   "description": "Experimental semantic interoperability layer for adaptive accessibility across software, devices, and robots.",
   "type": "module",
   "license": "Apache-2.0",
   "scripts": {
-    "test": "node tests/smoke-test.mjs && node tests/aria-adapter-test.mjs && node tests/wot-adapter-test.mjs && node tests/specs-adapter-test.mjs && node tests/lens-assets-sync-test.mjs && node tests/lens-access-profile-test.mjs && node tests/proposal-validation-test.mjs && node tests/execution-service-test.mjs && node tests/execution-http-server-test.mjs && node tests/capability-negotiation-test.mjs && node tests/wot-executor-test.mjs && node tests/vision-assistant-test.mjs && node tests/pdf-remediation-test.mjs",
+    "test": "node tests/smoke-test.mjs && node tests/aria-adapter-test.mjs && node tests/wot-adapter-test.mjs && node tests/specs-adapter-test.mjs && node tests/lens-assets-sync-test.mjs && node tests/lens-access-profile-test.mjs && node tests/proposal-validation-test.mjs && node tests/execution-service-test.mjs && node tests/execution-http-server-test.mjs && node tests/capability-negotiation-test.mjs && node tests/wot-executor-test.mjs && node tests/vision-assistant-test.mjs && node tests/pdf-remediation-test.mjs && node tests/web-vision-test.mjs",
     "sync:lens": "node scripts/sync-lens-assets.mjs",
     "service:dev": "node service/run-local.mjs",
     "thing:dev": "node service/virtual-thermostat.mjs",
     "service:dev:wot": "node service/run-local-wot.mjs",
     "service:dev:vision": "node service/run-local-vision.mjs",
-    "service:dev:pdf": "node service/run-local-pdf.mjs"
+    "service:dev:pdf": "node service/run-local-pdf.mjs",
+    "service:dev:web-vision": "node service/run-local-web-vision.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",

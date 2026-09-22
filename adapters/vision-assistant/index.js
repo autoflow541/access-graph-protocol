@@ -42,7 +42,10 @@ export function createVisionAssistantObject({ id, label = "Vision Assistant", de
         confirmation: false,
         category: "information",
         parameters: { image: IMAGE_PARAMETER },
-        authorization: { required: false }
+        authorization: { required: false },
+        // Read by service/vision-executor.mjs, which is generic over any
+        // image + describer action, not specific to this adapter.
+        metadata: { describerMode: "describe_scene" }
       },
       {
         id: "read_text",
@@ -51,7 +54,8 @@ export function createVisionAssistantObject({ id, label = "Vision Assistant", de
         confirmation: false,
         category: "information",
         parameters: { image: IMAGE_PARAMETER },
-        authorization: { required: false }
+        authorization: { required: false },
+        metadata: { describerMode: "read_text" }
       }
     ],
     // "camera" is the one input this needs: negotiateCapabilities()

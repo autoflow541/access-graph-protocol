@@ -72,6 +72,27 @@ AGP is currently an experimental interoperability prototype. The roadmap priorit
       calling the real, billed production service on every `npm test`;
       the real-backend verification above was manual, not repeatable CI
       coverage.
+- [x] AI-described-webpage capability (`adapters/web-vision/`): a fifth
+      media type, applying the vision-assistant pattern to a browser tab
+      instead of a camera, deliberately without reading the page's DOM or
+      ARIA tree at all: `adapters/aria/index.js` already covers pages
+      that cooperate; this covers ones that never will, the same way it
+      would for a phone or a pair of glasses. Proves reuse more strongly
+      than vision-assistant did alone: `service/vision-executor.mjs` was
+      generalized to read `metadata.describerMode` off any action
+      (matching the discipline `wot-executor.mjs` already used) instead
+      of hardcoding vision-assistant's two action ids, so this adapter
+      needed zero new executor code, only a new object shape.
+      `find_element` extends the pattern with a `query` parameter
+      (`negotiateCapabilities()`'s "camera" vs this adapter's
+      "screen_capture" input requirement are also correctly kept
+      distinct, not conflated, tested). Verified live: a real, valid PNG
+      file (not a placeholder string) sent through the full
+      propose/execute HTTP lifecycle, query text correctly reaching the
+      describer. Not verified: real screenshot capture from a live
+      browser tab (no demo page built for this leg yet, and this
+      environment's sandboxed browser pane has the same real-camera-style
+      access limits already documented for vision-assistant).
 - [ ] Lens Studio (SPECS 27) project: source complete in `examples/specs/lens-project/` (real TypeScript against SIK/Spectacles UI Kit/ASR/TTS, world-locked controls, hand + exact-voice input, a bounded-numeric-parameter slider control, captions/speech/large-text/high-contrast/reduced-motion/one-step, confirmation and authorization kept as separate gates); not yet device-tested (see "0.4: Real-world pilots")
 - [ ] Matter capability mapping experiment: data-model and trust-boundary decision already made in `docs/adr-0001-wot-reuse.md` (item 6) and researched in `docs/prior-art-and-positioning.md`; not yet implemented as an adapter
 - [ ] MCP tool projection for AGP actions

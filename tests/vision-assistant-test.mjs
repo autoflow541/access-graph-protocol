@@ -23,14 +23,15 @@ import { ExecutionService } from "../service/execution-service.js";
   assert.throws(() => createVisionAssistantObject({}));
 }
 
-// --- The executor calls the pluggable describer with the image and the right mode, and only supports the two declared actions
+// --- The executor is metadata-driven (graph.get(objectId).actions[..].metadata.describerMode), not hardcoded to this adapter's action ids
 {
   const calls = [];
   const fakeDescriber = async (image, mode) => {
     calls.push({ image, mode });
     return `described:${mode}`;
   };
-  const executor = createVisionExecutor(fakeDescriber);
+  const graph = new AccessGraph([createVisionAssistantObject({ id: "front-camera" })]);
+  const executor = createVisionExecutor(graph, fakeDescriber);
 
   const sceneResult = await executor("front-camera", "describe_scene", { image: "abc" });
   assert.deepEqual(sceneResult, { description: "described:describe_scene" });
@@ -43,7 +44,7 @@ import { ExecutionService } from "../service/execution-service.js";
     { image: "def", mode: "read_text" }
   ]);
 
-  await assert.rejects(() => executor("front-camera", "unknown_action", { image: "x" }), /Unsupported vision-assistant action/);
+  await assert.rejects(() => executor("front-camera", "unknown_action", { image: "x" }), /Unknown action/);
   await assert.rejects(() => executor("front-camera", "describe_scene", {}), /requires a captured image/);
 }
 
@@ -61,7 +62,7 @@ import { ExecutionService } from "../service/execution-service.js";
   const service = new ExecutionService({
     graph,
     allowedCallers: new Set(["good-token"]),
-    executor: createVisionExecutor(simulatedDescriber)
+    executor: createVisionExecutor(graph, simulatedDescriber)
   });
 
   const { stateVersion } = service.describe({ callerToken: "good-token", objectId: "front-camera" });

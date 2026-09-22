@@ -189,6 +189,34 @@ calling the real, billed production service on every `npm test`; the
 real-backend verification above was manual, not repeatable CI coverage.
 No browser demo yet (unlike vision-assistant/execution-client).
 
+## AI-described-webpage capability: started, not finished
+
+`adapters/web-vision/` is a fifth media type: describes or locates
+elements on a webpage from a screenshot alone, deliberately never
+reading the page's DOM or ARIA tree. `adapters/aria/index.js` already
+covers pages that cooperate; this covers ones that never will, using the
+same approach vision-assistant uses for a camera, applied to a browser
+tab instead. `find_element` needed a target to search for, so
+`service/vision-executor.mjs` was extended to pass an optional `query`
+through to the describer.
+
+This is the strongest reuse proof yet: the executor built for
+vision-assistant's camera actions dispatches this adapter's actions with
+*zero new executor code*, because it was generalized to read
+`metadata.describerMode` off any action instead of hardcoding two action
+ids (matching how `wot-executor.mjs` already reads
+`metadata.affordance`/`wot_name` instead of hardcoding a device). Only a
+new object shape was needed.
+
+Verified live: a real, valid PNG file (Auto-Flow's own logo, not a
+placeholder string) sent through the full propose/execute lifecycle over
+real HTTP, with the `query` text correctly reaching the describer.
+`negotiateCapabilities()` correctly treats "camera" and "screen_capture"
+as distinct requirements, not the same thing, with no changes to that
+function. Not verified: real screenshot capture from a live browser tab.
+No demo page exists yet for this leg (unlike vision-assistant's
+`examples/vision-assistant/`).
+
 ## Still open
 
 WoT schema coverage, cross-discovery stable IDs, Lens Studio/hardware

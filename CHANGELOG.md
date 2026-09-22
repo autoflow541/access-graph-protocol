@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.1.21: 2026-09-22
+
+A fifth media type, and the strongest reuse proof yet: zero new executor code.
+
+- New `adapters/web-vision/`: describes or locates elements on a webpage
+  from a screenshot alone, deliberately without reading the page's DOM
+  or ARIA tree. `adapters/aria/index.js` already covers pages that
+  cooperate; this covers ones that never will, the same way
+  `adapters/vision-assistant/` covers a camera regardless of what it's
+  pointed at. `find_element` takes a `query` parameter ("find the submit
+  button"), a first for this pattern.
+- `service/vision-executor.mjs` generalized: it now reads
+  `metadata.describerMode` off any action instead of hardcoding
+  vision-assistant's two action ids (matching the discipline
+  `wot-executor.mjs` already used for `metadata.affordance`/`wot_name`),
+  and passes an optional `query` through to the describer. This adapter
+  needed *zero new executor code*, only a new object shape; the same
+  file dispatches both media types unmodified beyond that
+  generalization.
+- `service/describers/simulated-describer.mjs` and
+  `anthropic-describer.mjs` updated with `describe_page`/`find_element`
+  modes and prompts.
+- New `service/run-local-web-vision.mjs`
+  (`npm run service:dev:web-vision`).
+- New `tests/web-vision-test.mjs`: object shape, the shared executor
+  actually dispatching both media types, `query` passthrough, and that
+  `negotiateCapabilities()` correctly treats "camera" and
+  "screen_capture" as distinct requirements rather than conflating them,
+  with zero changes to that function.
+- Verified live: a real, valid PNG file (Auto-Flow's own logo, not a
+  placeholder string) sent through the full propose/execute HTTP
+  lifecycle, `query` text correctly reaching the describer. Not
+  verified: real screenshot capture from a live browser tab; no demo
+  page built for this leg yet.
+- Docs updated: `README.md`, `ROADMAP.md`'s 0.2 milestone, `NEXT.md`,
+  `SECURITY.md`.
+
 ## 0.1.20: 2026-09-22
 
 A fourth media type, the first backed by an already-deployed production service.
