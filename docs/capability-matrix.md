@@ -43,6 +43,26 @@ never received it, and fixed an inconsistent form-submission default; see
 | Parameterized actions (e.g. set a numeric value) | N/A | N/A | Yes (`write_targettemperature` with a range input) | `AgpParameterSlider.ts` on `SpectaclesUIKit.Slider` — source-complete, **not tested on hardware**. Narrow scope: only a single bounded numeric `value` parameter (`write_targettemperature`'s shape); any other parameter shape is still shown as read-only state, not a control |
 | Camera / visual device identification | No | No | No | **Not implemented, and not planned for the first workflow** — do not add camera-based device discovery before explicit pairing/verified discovery exists; seeing a device is not permission to operate it |
 
+## Execution service (`service/`)
+
+A different axis from the adapter/client tables above: `service/` is a
+server-side trust boundary, not a presentation layer, so it gets its own
+row set rather than being forced into the Clients table's columns.
+
+| Capability | Status |
+|---|---|
+| Server-owned device/action allowlist | Yes — the `AccessGraph` passed to `ExecutionService`'s constructor *is* the allowlist; no separate list to keep in sync |
+| Caller authentication, rechecked per call | Yes — `_authenticate()` runs on every mutating call, not once at "login". Verified: an unauthenticated caller never reaches dispatch (asserted via executor call count) |
+| State-version staleness protection | Yes — checked at `propose()` and again at `execute()`, since state can change in between |
+| Duplicate-dispatch protection | Yes — caller-generated `requestId`; verified by deliberately breaking the dedup check and confirming the test failed, not just written and assumed |
+| Confirmation / authorization as distinct server-side steps | Yes, mirroring `adapters/specs/index.js`'s client-side model but as a genuinely separate trust boundary (see `service/README.md`) |
+| Real authorization backend | **No** — `simulatedAuthorizationProvider` trusts the caller's claim. The pluggable `authorizationProvider` interface is real; the default implementation is not |
+| Real device connected | **No** — `run-local.mjs`'s executor is simulated, same thermostat fixture as `examples/smart-device/` |
+| HTTP transport | Yes — `service/http-server.js`, Node's built-in `http`, no framework. Tested over real sockets, not just in-process |
+| A client that talks to it over the network | Yes — `examples/execution-client/`, manually verified live (see its row in `ROADMAP.md`'s M2 milestone for exactly what was and wasn't clicked through) |
+| Restart persistence | **No** — explicitly not claimed; everything is in-memory |
+| Tested | `tests/execution-service-test.mjs` (in-process), `tests/execution-http-server-test.mjs` (real sockets) |
+
 ## Findings from the source-inspection audit (this release)
 
 | # | Finding | Status |

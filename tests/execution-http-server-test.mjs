@@ -35,6 +35,23 @@ function call(method, path, { token, body } = {}) {
   }).then(async (response) => ({ status: response.status, body: await response.json() }));
 }
 
+// --- CORS: a preflight OPTIONS request gets a real 204 with the headers a
+// browser needs to allow the follow-up request; a real response (not just
+// the preflight) also carries Access-Control-Allow-Origin, since a
+// browser enforces CORS on every response, not only the preflight.
+{
+  const preflight = await fetch(`${base}/devices/lamp-01`, {
+    method: "OPTIONS",
+    headers: { "Access-Control-Request-Method": "GET", "Access-Control-Request-Headers": "Authorization" }
+  });
+  assert.equal(preflight.status, 204);
+  assert.equal(preflight.headers.get("access-control-allow-origin"), "*");
+  assert.ok(preflight.headers.get("access-control-allow-headers")?.includes("Authorization"));
+
+  const real = await fetch(`${base}/devices/lamp-01`, { headers: { Authorization: "Bearer good-token" } });
+  assert.equal(real.headers.get("access-control-allow-origin"), "*");
+}
+
 // --- No/invalid token -> 401, real network round trip, not just in-process
 {
   const noAuth = await call("GET", "/devices/lamp-01");

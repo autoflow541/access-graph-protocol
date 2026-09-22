@@ -136,17 +136,25 @@ and the roadmap should say so rather than checking it off anyway.
       default — now a pluggable, server-owned decision point, not a
       solved one) and `tests/execution-service-test.mjs` /
       `tests/execution-http-server-test.mjs`.
-- [ ] Browser reference client (`examples/smart-device/` evolved, or a
-      new example) completes the room-control tasks: read temperature and
-      device status; propose and execute a bounded simulated
-      target-temperature change; switch one real lamp on/off through the
-      execution service; see success, denial, disconnection, and
-      uncertain-outcome states distinctly; cancel a pending action before
-      dispatch. Acceptance: each of those five is a distinct, demonstrable
-      flow, keyboard- and screen-reader-operable. **Not started**:
-      `examples/smart-device/app.js` still calls `SpecsActionSession`'s
-      executor callback directly, in-process — nothing yet talks to
-      `service/` over the network.
+- [ ] Browser reference client: `examples/execution-client/` is a new
+      example (not `examples/smart-device/` rewired — that stays as the
+      pure in-process/client-side demo) that talks to `service/` over
+      real HTTP. Read temperature/device status and propose-and-execute a
+      bounded target-temperature change are done and were manually
+      verified live: the full describe → propose → confirm → authorize →
+      execute cycle actually moved `targetTemperature` and advanced the
+      state version over the network; stopping the service mid-session
+      showed a distinct "disconnected" state rather than stale data.
+      Real HTTP round trip for authorization denial, dispatch-timeout
+      ("unknown"), and cancel-before-dispatch are implemented and covered
+      by `tests/execution-http-server-test.mjs`/`execution-service-test.mjs`,
+      but were not individually clicked through live in a browser this
+      pass. Native buttons/range inputs and `aria-live` regions are used
+      throughout (keyboard-operable by construction), but no actual
+      screen reader was used to verify it — "screen-reader-operable" is
+      not yet a checked claim. "Switch one real lamp on/off" was moved
+      out of this criterion — that's M3's job (a real device), not this
+      one (a real service in front of a still-simulated device).
 
 **M3 — Real device connected, SPECS client compiled and integrated**
 - [ ] One real lamp switched on/off end-to-end through the execution

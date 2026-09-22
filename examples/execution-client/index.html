@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AGP execution service client</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">AGP execution service — real network client</p>
+        <h1>Hall thermostat</h1>
+        <p>
+          This page talks to <code>service/</code> over real HTTP — nothing here runs in-process.
+          Start it first: <code>npm run service:dev</code> (defaults to
+          <code>http://localhost:8787</code>, token <code>dev-token</code>). If it isn't running, the
+          "connection" panel below will say so, not silently show stale data.
+        </p>
+      </header>
+
+      <p id="connection-status" class="status-banner" role="status" aria-live="polite">Connecting to the execution service…</p>
+
+      <section class="layout" aria-label="Device controls">
+        <article class="device-card" aria-labelledby="device-title">
+          <p class="eyebrow">Server-reported device state</p>
+          <h2 id="device-title">Hall thermostat</h2>
+          <dl id="device-state"></dl>
+          <p class="eyebrow" id="state-version-label"></p>
+          <label>
+            Target temperature
+            <input id="target" type="range" min="16" max="28" value="21" step="1" disabled>
+            <output id="target-value" for="target">21°C</output>
+          </label>
+        </article>
+
+        <article class="specs-shell" aria-labelledby="actions-title">
+          <p class="eyebrow">Proposal lifecycle</p>
+          <h2 id="actions-title">Actions</h2>
+          <div id="actions" class="actions"></div>
+          <div id="gate" class="gate" hidden>
+            <p id="gate-message" role="status" aria-live="polite"></p>
+            <div id="gate-actions" class="actions"></div>
+          </div>
+          <p id="outcome" class="outcome" role="status" aria-live="polite"></p>
+        </article>
+      </section>
+
+      <details>
+        <summary>Inspect the service's raw describe() response</summary>
+        <pre id="graph-json"></pre>
+      </details>
+      <p id="announcer" class="sr-only" aria-live="assertive"></p>
+    </main>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.1.13 — 2026-09-22
+
+Closes the execution service's biggest remaining gap from 0.1.12: nothing
+talked to it over the network yet. Now something does, and it was
+verified live, not just unit-tested.
+
+- **Added** `examples/execution-client/`: a real browser client for
+  `service/` over actual HTTP — `examples/smart-device/` (the in-process
+  simulation) is deliberately left unchanged rather than rewired, so both
+  a pure client-side demo and a real-network one exist side by side.
+- **Added** CORS support to `service/http-server.js`
+  (`createExecutionHttpServer(service, { corsOrigin })`, defaulting to
+  `"*"` for local development) so a browser on a different port can call
+  it. Documented as a dev default, not a production posture — CORS only
+  controls which origins may read a response; it does not weaken the
+  authentication check, which still runs on every request regardless of
+  origin. Covered by a new preflight/response-header test in
+  `tests/execution-http-server-test.mjs`.
+- **Manually verified live**, not just via the automated suite: opened
+  the client against a running service, dragged the temperature slider,
+  and walked propose → confirm → authorize → execute over real HTTP —
+  `targetTemperature` actually moved 21 → 25 and the state version
+  advanced 1 → 2, with zero console errors. Then stopped the service
+  mid-session and confirmed the client showed a distinct "cannot reach
+  the execution service" state rather than crashing or silently
+  displaying stale data as current.
+- Fixed a typo (`actionid` instead of `actionId`) in `service/run-local.mjs`
+  caught by actually running it rather than assuming it was correct.
+- **Not done**: authorization-denial, dispatch-timeout, and
+  cancel-before-dispatch are implemented and covered by the automated
+  suite but weren't individually clicked through live in a browser this
+  pass; no actual screen reader was used to verify the page. `docs/capability-matrix.md`,
+  `service/README.md`, `NEXT.md`, and `ROADMAP.md`'s M2 milestone all
+  state this precisely rather than rounding up to "done."
+
 ## 0.1.12 — 2026-09-22
 
 Starts the execution service — `ROADMAP.md` M2 and

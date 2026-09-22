@@ -25,20 +25,27 @@ HTTP. Done:
 - Outcomes are succeeded / failed / unknown (dispatch timeout) /
   cancelled / denied, each with a distinct, tested code path.
 
+A real browser client now exists too: `examples/execution-client/` talks
+to `service/` over actual HTTP (CORS added to `http-server.js` for this).
+Manually verified live: connect → propose → confirm → authorize → execute
+actually moved `targetTemperature` and advanced the state version;
+stopping the service mid-session showed a distinct "disconnected" state
+instead of crashing or showing stale data as current. Not manually
+clicked through in a browser (only covered by the automated suite):
+authorization denial, dispatch-timeout ("unknown"), and cancel-before-
+dispatch. No actual screen reader was used to verify it.
+
 Not done — this is the actual next work, not "still open" in the vague
 sense:
 
-- **No browser workflow talks to this yet.** `examples/smart-device/`
-  still calls `SpecsActionSession`'s executor callback directly,
-  in-process. Rewiring it (or a new example) to call `service/` over
-  HTTP, with accessible denial/expiry/timeout/disconnection states and
-  keyboard recovery, is ROADMAP.md M2's remaining acceptance criterion.
 - **Authorization is still simulated.** The default
   `authorizationProvider` trusts whatever the caller claims. A real
   provider (paired-device approval, OAuth introspection, ...) is a clean
   swap-in point now, but nobody has built one.
 - **No real device connected.** M3's `node-wot` integration
   (`docs/adr-0001-wot-reuse.md`) is still ahead of this.
+- **No accessible task inspector, capability negotiation, or scenario
+  runner** — `docs/audit-2026-09-22.md`'s next priorities after this one.
 
 ## Still open
 

@@ -74,6 +74,14 @@ A thrown error's `.code` maps to an HTTP status (`UNAUTHENTICATED` → 401,
 `STALE_STATE`/`NOT_READY` → 409, `PROPOSAL_EXPIRED` → 410, anything else
 → 400). See `http-server.js`.
 
+CORS is permissive by default (`corsOrigin: "*"`, `createExecutionHttpServer(service, { corsOrigin })`)
+so a browser example on a different local port — `examples/execution-client/`
+— can call it directly. This is a local-development default, not a
+production posture; a real deployment sets `corsOrigin` to its actual
+client origin(s) explicitly. CORS only controls which browser origins may
+*read* a response — it does not weaken authentication, which still runs
+on every request regardless of origin.
+
 ## What's not done yet
 
 Said plainly, matching every other "simulated"/"unverified" label already
@@ -99,15 +107,26 @@ used across this repo:
   simulated, same as `examples/smart-device/app.js`. Connecting one real
   lamp through `node-wot` (per `docs/adr-0001-wot-reuse.md`) is the next
   step ROADMAP.md's M3 milestone calls for, not something this does.
-- **No browser/Lens client rewired to use this over the network yet.**
-  `examples/smart-device/` still calls `SpecsActionSession`'s executor
-  callback directly, in-process. Making it (or a new example) actually
-  talk to this service over HTTP — with distinct, accessible
-  denial/staleness/timeout/disconnection states, per ROADMAP.md's M2
-  acceptance criteria — is real, separate follow-up work.
+- **A real browser client now exists** (`examples/execution-client/`) and
+  was manually verified live — describe → propose → confirm → authorize
+  → execute over real HTTP actually moved `targetTemperature` and
+  advanced the state version, and stopping the service mid-session showed
+  a distinct, non-crashing "disconnected" state rather than stale data.
+  What was **not** manually clicked through in a browser, only covered by
+  the automated suite (`tests/execution-service-test.mjs`): the
+  authorization-denial path, the dispatch-timeout ("unknown" outcome)
+  path, and cancel-before-dispatch. No actual screen reader was used to
+  verify the page — it uses native buttons/range inputs and `aria-live`
+  regions, which is a reasonable-effort attempt, not a verified one.
+  `examples/smart-device/` (the in-process simulation) was deliberately
+  left as-is rather than rewired, so both a pure client-side demo and a
+  real-network one exist side by side.
 - **No accessible task inspector, capability negotiation, or scenario
   runner.** Those are `docs/audit-2026-09-22.md`'s next priorities after
   this one, not built here.
+- **No real device connected to the browser client either** — same
+  simulated thermostat as everywhere else. See the "No real device
+  connected" point above.
 
 ## Dependency-free
 
