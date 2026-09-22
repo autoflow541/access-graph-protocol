@@ -55,6 +55,39 @@ caller token.
 curl -H "Authorization: Bearer dev-token" http://localhost:8787/devices/hall-thermostat
 ```
 
+## Running it against a real WoT Thing
+
+`run-local.mjs`'s executor is a hand-rolled switch statement: it works,
+but it is not what ADR-0001 (`docs/adr-0001-wot-reuse.md`) point 4 asked
+for once a real execution service existed. `wot-executor.mjs` is that:
+a generic executor that dispatches through a real `@node-wot/core`
+`ConsumedThing` (`readProperty`/`writeProperty`/`invokeAction`), driven
+entirely by the `metadata.affordance`/`metadata.wot_name` the WoT
+adapter already attaches to every action, so it needs no per-device code.
+
+Two processes, in two terminals:
+
+```bash
+npm run thing:dev        # exposes a real WoT Thing over real HTTP (virtual-thermostat.mjs)
+npm run service:dev:wot  # fetches its real Thing Description and serves the same execution-service HTTP API on port 8790
+```
+
+```bash
+curl -H "Authorization: Bearer dev-token" http://localhost:8790/devices/hall-thermostat
+```
+
+This is still a simulated thermostat, not physical hardware: the
+difference from `run-local.mjs` is that the two processes now only ever
+communicate the way a real WoT client and device would (an actual fetched
+Thing Description, actual Scripting API calls over HTTP), not a shared
+JS object one script can just mutate. Verified in
+`tests/wot-executor-test.mjs` and manually: a property write dispatched
+through `ExecutionService` was independently confirmed by reading the
+Thing's own HTTP endpoint directly, and AGP's local state mirror was
+resynced from the real Thing afterward. See `docs/adr-0001-wot-reuse.md`
+point 4 for what this does and does not close, and `SECURITY.md` for
+`node-wot`'s own transitive dependency advisories.
+
 ## HTTP surface
 
 All bodies/responses are JSON. `Authorization: Bearer <callerToken>` is
@@ -120,10 +153,14 @@ used across this repo:
   caller never dispatches" is a real, enforced, testable property (see
   `tests/execution-service-test.mjs`): but the token issuance and
   rotation story around it does not exist yet.
-- **No real device connected.** The executor in `run-local.mjs` is
-  simulated, same as `examples/smart-device/app.js`. Connecting one real
-  lamp through `node-wot` (per `docs/adr-0001-wot-reuse.md`) is the next
-  step ROADMAP.md's M3 milestone calls for, not something this does.
+- **`run-local.mjs`'s executor is still a hand-rolled simulation** (same
+  as `examples/smart-device/app.js`), unchanged and kept as-is. The real
+  alternative now exists alongside it: `run-local-wot.mjs` +
+  `wot-executor.mjs` dispatch through an actual `node-wot` `ConsumedThing`
+  talking to `virtual-thermostat.mjs` over real HTTP. See "Running it
+  against a real WoT Thing," above, and `docs/adr-0001-wot-reuse.md`
+  point 4. Still not physical hardware: "one real lamp" is
+  `ROADMAP.md`'s M3, not this.
 - **A real browser client now exists** (`examples/execution-client/`),
   and every gate/outcome path was manually verified live over real HTTP,
   not just by the automated suite: success (`targetTemperature` actually
@@ -143,15 +180,27 @@ used across this repo:
   verified one. `examples/smart-device/` (the in-process simulation) was
   deliberately left as-is rather than rewired, so both a pure client-side
   demo and a real-network one exist side by side.
-- **No accessible task inspector, capability negotiation, or scenario
-  runner.** Those are `docs/audit-2026-09-22.md`'s next priorities after
-  this one, not built here.
-- **No real device connected to the browser client either**: same
-  simulated thermostat as everywhere else. See the "No real device
-  connected" point above.
+- **Accessible task inspector and client capability negotiation are now
+  built** (`ExecutionService.inspect()`, `negotiateCapabilities()`; see
+  `docs/audit-2026-09-22.md` items 3 and 4). **No scenario runner yet**:
+  that is the one remaining `docs/audit-2026-09-22.md` priority not
+  started.
+- **The browser client defaults to the simulated backend.**
+  `examples/execution-client/` talks to whichever `service:dev*` process
+  is running on its configured port (default 8787, `run-local.mjs`); it
+  was not separately re-verified live against the port-8790 WoT-backed
+  service in this round, though the two expose an identical HTTP contract
+  and the WoT-backed lifecycle itself was verified over real HTTP
+  (curl and `tests/wot-executor-test.mjs`) end to end.
 
-## Dependency-free
+## Dependency-free, with one deliberate exception
 
 `execution-service.js` and `http-server.js` use only Node's own `http`
 module and standard library: no Express, no framework, matching the rest
-of this repo's dependency-free SDK/adapters.
+of this repo's dependency-free SDK/adapters. `wot-executor.mjs`,
+`virtual-thermostat.mjs`, and `run-local-wot.mjs` are the one place this
+repo takes on a real dependency (`@node-wot/core`, `@node-wot/binding-http`),
+because ADR-0001 point 4 (`docs/adr-0001-wot-reuse.md`) specifically calls
+for reusing an existing WoT execution runtime instead of AGP
+reimplementing WoT protocol bindings. See `SECURITY.md` for that
+dependency's own transitive advisories.

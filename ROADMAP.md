@@ -108,15 +108,30 @@ and the roadmap should say so rather than checking it off anyway.
       its own category: see `docs/capability-matrix.md`, Finding G.
 
 **M2: Execution service and browser reference workflow**
-- [ ] One execution integration chosen and implemented (`node-wot` for
+- [x] One execution integration chosen and implemented (`node-wot` for
       WoT-sourced actions, evaluated per `docs/adr-0001-wot-reuse.md`).
-      Home Assistant's WebSocket API evaluated as a second, later backend
-      for real-device bridging: not built in this milestone. Home
-      Assistant's `call_service` API has no risk classification of its
-      own (`docs/adr-0001-wot-reuse.md`, item 5), so whichever backend is
-      built second needs its own reviewed `domain`/`service` → category
-      mapping, not an assumption that risk can be read from Home
-      Assistant the way it's (imperfectly) read from a WoT TD.
+      `service/wot-executor.mjs` dispatches through a real
+      `@node-wot/core` `ConsumedThing`, driven entirely by the
+      `metadata.affordance`/`metadata.wot_name` the WoT adapter already
+      attaches, so it needs no per-device code.
+      `service/virtual-thermostat.mjs` exposes a real Thing over real
+      HTTP; `service/run-local-wot.mjs` fetches its actual Thing
+      Description and runs it through the unmodified
+      `adapters/wot/index.js`. Verified in `tests/wot-executor-test.mjs`
+      and manually: a property write dispatched through
+      `ExecutionService` was independently confirmed by reading the real
+      Thing's own HTTP endpoint directly; `AccessGraph`'s state mirror is
+      resynced from the real Thing after every dispatch; a value AGP's
+      own schema validation rejects never reaches the Thing. Still
+      simulated hardware, not physical: "one real lamp" is M3's job, not
+      this checkbox's. Home Assistant's WebSocket API evaluated as a
+      second, later backend for real-device bridging: not built in this
+      milestone. Home Assistant's `call_service` API has no risk
+      classification of its own (`docs/adr-0001-wot-reuse.md`, item 5),
+      so whichever backend is built second needs its own reviewed
+      `domain`/`service` → category mapping, not an assumption that risk
+      can be read from Home Assistant the way it's (imperfectly) read
+      from a WoT TD.
 - [x] The action lifecycle (proposal → validation → confirmation →
       server-side authorization → dispatch → succeeded/failed/unknown/
       cancelled) exists server-side, in `service/execution-service.js`,
@@ -202,6 +217,10 @@ and the roadmap should say so rather than checking it off anyway.
 - [ ] One real lamp switched on/off end-to-end through the execution
       service (heating, locks, robot motion, and drone flight stay
       simulated until the execution model from M2 has been reviewed).
+      The protocol-level prerequisite for this is done (M2's `node-wot`
+      integration, above): what's missing now is specifically physical
+      hardware or a real device bridge behind a WoT/Matter/Home Assistant
+      Thing Description, not any remaining AGP-side plumbing.
 - [ ] `examples/specs/lens-project/` actually compiles in Lens Studio
       5.22+ against the real, currently-installed SIK and Spectacles UI
       Kit package versions (not just reviewed as source) and connects to

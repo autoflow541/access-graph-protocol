@@ -52,10 +52,38 @@ Concretely:
    [Eclipse Thingweb `node-wot`](https://github.com/eclipse-thingweb/node-wot)
    or an equivalent WoT execution runtime directly for the dispatch step
    of a WoT-sourced action, rather than AGP reimplementing WoT protocol
-   bindings. This repo does not have an execution service yet: see
-   Milestone "Execution service, one integration" in `ROADMAP.md`: so
-   this point is a constraint on that future work, not something already
-   built.
+   bindings.
+
+   **Done (2026-09-22), with an honest scope limit:** `service/wot-executor.mjs`
+   dispatches an `ExecutionService` action through a real
+   `@node-wot/core` `ConsumedThing` (`readProperty`/`writeProperty`/`invokeAction`),
+   driven entirely by the `metadata.affordance`/`metadata.wot_name` the WoT
+   adapter already attaches, so it is not thermostat-specific and needs no
+   per-device code. `service/virtual-thermostat.mjs` exposes a real WoT
+   Thing over real HTTP (`@node-wot/binding-http`'s `HttpServer`), and
+   `service/run-local-wot.mjs` fetches its actual Thing Description
+   (`WoT.requestThingDescription`, not a literal object) and runs it
+   through the unmodified `adapters/wot/index.js`. Verified live and in
+   `tests/wot-executor-test.mjs`: a property write dispatched through
+   `ExecutionService` is independently confirmed by reading the Thing's
+   own HTTP endpoint directly, bypassing `ExecutionService` entirely;
+   `AccessGraph`'s local state mirror is resynced from the real Thing
+   after every dispatch, not left stale; a value AGP's own schema
+   validation rejects never reaches the Thing at all.
+
+   What this is *not*: a physical device. `virtual-thermostat.mjs` is
+   still simulated hardware, exactly like `run-local.mjs`'s thermostat
+   was: the difference is that the two processes now only ever talk over a
+   real WoT protocol stack (an actual Thing Description fetched over
+   HTTP, actual Scripting API calls), not a shared JS object one script
+   could just mutate. "One real lamp" (`ROADMAP.md` M3) still needs
+   actual hardware or a real device bridge behind a WoT/Matter/Home
+   Assistant TD, which this is not. `node-wot`'s own dependency tree
+   currently carries a handful of moderate/high transitive advisories in
+   its HTTP server's router and query-string parsing
+   (`decode-uri-component`, `find-my-way`) with no non-breaking fix
+   available yet; acceptable for a local, loopback-bound, `nosec`
+   development Thing, not for an internet-facing one; see `SECURITY.md`.
 5. Home Assistant's WebSocket API is a plausible *second* execution
    backend (real lamp/device bridge) for the room-control reference
    workflow in `ROADMAP.md`, evaluated after `node-wot`, not instead of

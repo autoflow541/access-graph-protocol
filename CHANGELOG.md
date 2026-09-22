@@ -1,5 +1,57 @@
 # Changelog
 
+## 0.1.18: 2026-09-22
+
+Real node-wot execution: ADR-0001 point 4, `docs/adr-0001-wot-reuse.md`.
+
+- New `service/wot-executor.mjs`: a generic `ExecutionService` executor
+  that dispatches through a real `@node-wot/core` `ConsumedThing`
+  (`readProperty`/`writeProperty`/`invokeAction`), driven entirely by the
+  `metadata.affordance`/`metadata.wot_name` the WoT adapter already
+  attaches to every action. Not thermostat-specific: works for any
+  WoT-sourced AGP object without per-device code.
+- New `service/virtual-thermostat.mjs`: a real Web of Things device,
+  exposed over real HTTP via `@node-wot/binding-http`'s `HttpServer`
+  (bound to `127.0.0.1` only, `nosec`, local development use). Same
+  `x-agp-*` vocabulary as `run-local.mjs`'s literal Thing Description, so
+  `adapters/wot/index.js` needed zero changes.
+- New `service/run-local-wot.mjs`: fetches the virtual thermostat's real
+  Thing Description (`WoT.requestThingDescription`, not a literal
+  object), consumes it, and serves the identical execution-service HTTP
+  API on port 8790. `run-local.mjs` is untouched: both the pure
+  simulation and the real-protocol path exist side by side, same as
+  `examples/smart-device/` vs `examples/execution-client/`.
+- New `@node-wot/core`, `@node-wot/binding-http`, `@node-wot/td-tools`
+  dependencies: the one deliberate exception to this repo's
+  dependency-free posture, scoped to these three files only. `npm audit`
+  reports moderate/high transitive advisories in `node-wot`'s own HTTP
+  router/query-string parsing with no non-breaking fix available;
+  documented plainly in `SECURITY.md` rather than hidden, and judged
+  acceptable for a loopback-bound, `nosec` development Thing.
+- New `tests/wot-executor-test.mjs`: boots a real node-wot Servient and a
+  real node-wot client in-process (no mocks), then asserts, over real
+  HTTP: a property write dispatched through `ExecutionService` is
+  independently confirmed by reading the Thing's own endpoint directly
+  (bypassing `ExecutionService`); an action invocation actually runs the
+  Thing's real handler; `AccessGraph`'s state mirror is resynced from the
+  real Thing after every dispatch; a value AGP's own schema validation
+  rejects never reaches the Thing at all.
+- Manually verified live end to end, independent of the automated suite:
+  booted both processes, ran propose → confirm → authorize → execute
+  over real HTTP against the real service, then confirmed the change by
+  querying the virtual Thing's own HTTP endpoint directly, not by
+  trusting `ExecutionService`'s report of success.
+- Not done: `virtual-thermostat.mjs` is still simulated hardware, not a
+  physical device: "one real lamp" (`ROADMAP.md` M3) still needs actual
+  hardware or a real device bridge. `examples/execution-client/` was not
+  separately re-verified live against this backend (defaults to
+  `run-local.mjs`'s port), though it speaks the identical HTTP contract
+  already verified working here.
+- Docs updated to match: `docs/adr-0001-wot-reuse.md`, `ROADMAP.md`'s M2
+  (checked) and M3 (still unchecked, with the prerequisite noted),
+  `NEXT.md`, `docs/audit-2026-09-22.md` item 6, `service/README.md`,
+  `SECURITY.md`.
+
 ## 0.1.17: 2026-09-22
 
 Style-only release: removed every em dash from the repo (prose, code

@@ -1,12 +1,19 @@
 {
   "name": "access-graph-protocol",
-  "version": "0.1.17",
+  "version": "0.1.18",
   "description": "Experimental semantic interoperability layer for adaptive accessibility across software, devices, and robots.",
   "type": "module",
   "license": "Apache-2.0",
   "scripts": {
-    "test": "node tests/smoke-test.mjs && node tests/aria-adapter-test.mjs && node tests/wot-adapter-test.mjs && node tests/specs-adapter-test.mjs && node tests/lens-assets-sync-test.mjs && node tests/lens-access-profile-test.mjs && node tests/proposal-validation-test.mjs && node tests/execution-service-test.mjs && node tests/execution-http-server-test.mjs && node tests/capability-negotiation-test.mjs",
+    "test": "node tests/smoke-test.mjs && node tests/aria-adapter-test.mjs && node tests/wot-adapter-test.mjs && node tests/specs-adapter-test.mjs && node tests/lens-assets-sync-test.mjs && node tests/lens-access-profile-test.mjs && node tests/proposal-validation-test.mjs && node tests/execution-service-test.mjs && node tests/execution-http-server-test.mjs && node tests/capability-negotiation-test.mjs && node tests/wot-executor-test.mjs",
     "sync:lens": "node scripts/sync-lens-assets.mjs",
-    "service:dev": "node service/run-local.mjs"
+    "service:dev": "node service/run-local.mjs",
+    "thing:dev": "node service/virtual-thermostat.mjs",
+    "service:dev:wot": "node service/run-local-wot.mjs"
+  },
+  "dependencies": {
+    "@node-wot/binding-http": "^0.9.2",
+    "@node-wot/core": "^0.9.2",
+    "@node-wot/td-tools": "^0.9.0"
   }
 }

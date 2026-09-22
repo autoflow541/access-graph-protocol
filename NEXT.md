@@ -45,8 +45,10 @@ sense:
   `authorizationProvider` trusts whatever the caller claims. A real
   provider (paired-device approval, OAuth introspection, ...) is a clean
   swap-in point now, but nobody has built one.
-- **No real device connected.** M3's `node-wot` integration
-  (`docs/adr-0001-wot-reuse.md`) is still ahead of this.
+- **No physical device connected.** The `node-wot` integration itself is
+  now done (see "Real WoT execution," below); "one real lamp" (`ROADMAP.md`
+  M3) still needs actual hardware or a real device bridge, which this
+  isn't.
 - **No scenario runner**:
   `docs/audit-2026-09-22.md`'s next priority after capability negotiation.
 
@@ -89,12 +91,39 @@ Not done: object-level only (no per-action channels), and the checkboxes
 are a manual simulation: nothing here reads a real device's or browser's
 actual capabilities. See `docs/audit-2026-09-22.md` item 4.
 
+## Real WoT execution: started, not finished
+
+`service/wot-executor.mjs` dispatches an `ExecutionService` action
+through a real `@node-wot/core` `ConsumedThing`
+(`readProperty`/`writeProperty`/`invokeAction`), driven by the
+`metadata.affordance`/`metadata.wot_name` the WoT adapter already
+attaches, so it works for any WoT-sourced object without per-device code.
+`service/virtual-thermostat.mjs` exposes a real Thing over real HTTP
+(`@node-wot/binding-http`); `service/run-local-wot.mjs` fetches its
+actual Thing Description and runs the unmodified `adapters/wot/index.js`
+against it. This is ADR-0001 point 4 (`docs/adr-0001-wot-reuse.md`),
+done: AGP no longer needs to reimplement WoT protocol bindings for
+dispatch.
+
+Verified in `tests/wot-executor-test.mjs` and manually: a property write
+dispatched through `ExecutionService` was independently confirmed by
+reading the real Thing's own HTTP endpoint directly (bypassing
+`ExecutionService` entirely); `AccessGraph`'s local state mirror is
+resynced from the real Thing after every dispatch; a value AGP's own
+schema validation rejects never reaches the Thing at all. Not done: this
+is still simulated hardware (a Node process, not a physical device), and
+`examples/execution-client/` was not separately re-verified live against
+this backend, though it speaks the identical HTTP contract already
+verified working. `node-wot`'s own dependency tree carries transitive
+advisories with no non-breaking fix; see `SECURITY.md`.
+
 ## Still open
 
 WoT schema coverage, cross-discovery stable IDs, Lens Studio/hardware
 verification, real screen-reader verification of every browser example,
 per-action capability channels, real capability detection (vs. the
-current manual-toggle simulation), and a scenario runner. See
+current manual-toggle simulation), one real physical device (M3), and a
+scenario runner. See
 `docs/audit-2026-09-22.md` for acceptance criteria and feature
 priorities. ("UI versus executor confirmation consistency" from the
 original audit finding was fixed: see CHANGELOG.md's 0.1.11 entry.)
