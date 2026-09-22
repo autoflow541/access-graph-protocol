@@ -117,6 +117,40 @@ this backend, though it speaks the identical HTTP contract already
 verified working. `node-wot`'s own dependency tree carries transitive
 advisories with no non-breaking fix; see `SECURITY.md`.
 
+## AI-described-environment capability: started, not finished
+
+`adapters/vision-assistant/` models "ask a camera what it sees" as an
+AGP object: `describe_scene` and `read_text`, both `risk: "none"`, no
+confirmation, no authorization, by design, since the real-world use case
+(a blind or low-vision person asking constantly throughout the day)
+breaks if every question needs a confirmation dialog. Not tied to one
+camera vendor: any source that can produce a still frame (glasses, phone,
+webcam) fits the same object. `service/vision-executor.mjs` dispatches
+through a pluggable describer: `service/describers/simulated-describer.mjs`
+(default, clearly labeled) or `service/describers/anthropic-describer.mjs`
+(real, billed Anthropic API calls, only active with `ANTHROPIC_API_KEY`
+set).
+
+This exists specifically to prove AGP's execution model and
+`negotiateCapabilities()` were never IoT-specific: both were built for
+the smart-thermostat demo and work here completely unmodified. Verified
+in `tests/vision-assistant-test.mjs` and live: the full propose/execute
+lifecycle over real HTTP; `negotiateCapabilities()` correctly explaining
+a missing `camera` input with the exact same function, zero changes;
+in `examples/vision-assistant/`, a denied camera permission correctly
+disables both action buttons and surfaces that explanation rather than
+failing silently or leaving stale-looking controls enabled.
+
+Not verified: the camera-available happy path (successful capture, frame
+sent, description received, spoken aloud) in this environment, which has
+no real camera access, only the correctly-handled denied-permission path.
+The real Anthropic describer exists as real code but was not exercised
+live (no API key configured here). `ANTHROPIC_API_KEY` stays server-side
+in `service/run-local-vision.mjs`, never sent to the browser client; see
+`SECURITY.md` for the new privacy consideration this adapter introduces
+(a captured frame can contain bystanders who never consented), which AGP's
+existing risk model does not yet address.
+
 ## Still open
 
 WoT schema coverage, cross-discovery stable IDs, Lens Studio/hardware

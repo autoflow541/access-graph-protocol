@@ -20,6 +20,25 @@ AGP is currently an experimental interoperability prototype. The roadmap priorit
 - [x] W3C Web of Things adapter
 - [x] SPECS semantic view and safety bridge
 - [x] Simulated WoT smart-device/SPECS interaction demo
+- [x] AI-described-environment capability (`adapters/vision-assistant/`):
+      the first AGP object that is not device control at all, an
+      informational "ask the camera what it sees" affordance, camera
+      hardware-agnostic on purpose. Verified: the object correctly
+      resolves both actions to `risk: "none"`/no confirmation/no
+      authorization through the real `ExecutionService` (matching the
+      real-world requirement that a blind or low-vision person asking
+      this dozens of times a day cannot have every question gated);
+      `negotiateCapabilities()` (built for the WoT thermostat demo)
+      explains a missing camera correctly with zero changes; live in the
+      browser, denied camera permission correctly disables both buttons
+      and surfaces the capability-negotiation explanation rather than
+      failing silently. Default describer is simulated and says so; a
+      real one (`service/describers/anthropic-describer.mjs`) exists but
+      was not exercised live in this round (no API key configured in
+      this environment). See `docs/audit-2026-09-22.md`-style honesty:
+      camera capture itself is browser-verified only for the
+      permission-denied path, not the happy path, since this environment
+      has no camera access.
 - [ ] Lens Studio (SPECS 27) project: source complete in `examples/specs/lens-project/` (real TypeScript against SIK/Spectacles UI Kit/ASR/TTS, world-locked controls, hand + exact-voice input, a bounded-numeric-parameter slider control, captions/speech/large-text/high-contrast/reduced-motion/one-step, confirmation and authorization kept as separate gates); not yet device-tested (see "0.4: Real-world pilots")
 - [ ] Matter capability mapping experiment: data-model and trust-boundary decision already made in `docs/adr-0001-wot-reuse.md` (item 6) and researched in `docs/prior-art-and-positioning.md`; not yet implemented as an adapter
 - [ ] MCP tool projection for AGP actions

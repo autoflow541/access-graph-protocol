@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AGP vision assistant</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">AGP execution service, a different media type</p>
+        <h1>What am I looking at?</h1>
+        <p>
+          The same protocol and the same server-side execution model as every other device in
+          this repo (<code>service/</code>, unmodified), applied to a camera instead of a smart
+          device. Real camera capture, real speech output. The description itself is <strong>simulated
+          by default</strong> (see the connection banner below): start the service with
+          <code>ANTHROPIC_API_KEY</code> set for a real one.
+          Start it first: <code>npm run service:dev:vision</code> (defaults to
+          <code>http://localhost:8791</code>, token <code>dev-token</code>).
+        </p>
+      </header>
+
+      <p id="connection-status" class="status-banner" role="status" aria-live="polite">Connecting to the vision-assistant service…</p>
+
+      <section class="layout" aria-label="Camera and controls">
+        <article class="device-card" aria-labelledby="camera-title">
+          <p class="eyebrow">Camera</p>
+          <h2 id="camera-title">Live view</h2>
+          <video id="camera-preview" autoplay playsinline muted></video>
+          <p id="camera-status" role="status" aria-live="polite"></p>
+        </article>
+
+        <article class="specs-shell" aria-labelledby="actions-title">
+          <p class="eyebrow">Ask, no confirmation needed</p>
+          <h2 id="actions-title">Ask a question</h2>
+          <p>
+            Both actions are declared <code>risk: "none"</code> with no confirmation or
+            authorization gate: a blind or low-vision person asking this dozens of times a day
+            cannot have every question interrupted by a dialog.
+          </p>
+          <div class="actions">
+            <button id="btn-describe" type="button" disabled>What am I looking at?</button>
+            <button id="btn-read-text" type="button" disabled>Read the text in view</button>
+          </div>
+          <p id="outcome" class="outcome" role="status" aria-live="assertive"></p>
+        </article>
+      </section>
+
+      <section class="capabilities" aria-labelledby="capabilities-title">
+        <p class="eyebrow">Client capability negotiation, unmodified</p>
+        <h2 id="capabilities-title">Same negotiateCapabilities(), a new media type</h2>
+        <p>
+          This page's camera/speech availability is checked with the exact same
+          <code>negotiateCapabilities()</code> (<code>sdk/javascript/agp.js</code>) built for the
+          smart-thermostat demo: nothing about that function changed for this to work here.
+        </p>
+        <div id="capability-result" class="capability-result" role="status" aria-live="polite"></div>
+      </section>
+
+      <p id="announcer" class="sr-only" aria-live="assertive"></p>
+    </main>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

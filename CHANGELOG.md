@@ -1,5 +1,44 @@
 # Changelog
 
+## 0.1.19: 2026-09-22
+
+AI-described-environment capability, a non-IoT media type.
+
+- New `adapters/vision-assistant/`: models "ask a camera what it sees"
+  as an AGP object (`describe_scene`, `read_text`), not tied to one
+  camera vendor. Both actions are `risk: "none"`, no confirmation, no
+  authorization, by design: the real-world use case (a blind or
+  low-vision person asking constantly throughout the day) breaks if
+  every question needs a confirmation dialog.
+- New `service/vision-executor.mjs`: a generic executor dispatching
+  through a pluggable describer, same pattern as `wot-executor.mjs`.
+  New `service/describers/simulated-describer.mjs` (default, clearly
+  labeled placeholder) and `service/describers/anthropic-describer.mjs`
+  (real, billed Anthropic API calls via the official SDK, active only
+  with `ANTHROPIC_API_KEY` set; the key stays server-side in
+  `service/run-local-vision.mjs`, never sent to the browser client).
+- New `tests/vision-assistant-test.mjs`: object shape, executor
+  dispatch, the simulated describer's honesty about not having looked
+  at anything, and, critically, that `negotiateCapabilities()` (built
+  for the WoT thermostat demo) works correctly against this new
+  `camera` input requirement with zero changes to that function.
+- New `examples/vision-assistant/`: real `getUserMedia` camera capture,
+  real `SpeechSynthesis` output, talking to the same execution-service
+  HTTP API every other example uses. Verified live: the service
+  connects, and a denied camera permission correctly disables both
+  action buttons and surfaces `negotiateCapabilities()`'s explanation
+  rather than failing silently. Not verified: the camera-available
+  happy path, since this environment has no real camera access.
+- New `@anthropic-ai/sdk` dependency, used only by the optional real
+  describer.
+- New privacy consideration documented in `SECURITY.md`: a captured
+  frame can contain bystanders who never consented to being described,
+  which AGP's existing risk/confirmation model (built for action
+  consequences, not data capture) does not yet address. Stated as an
+  open gap, not a solved one.
+- Docs updated: `README.md`, `ROADMAP.md`'s 0.2 milestone, `NEXT.md`,
+  `SECURITY.md`.
+
 ## 0.1.18: 2026-09-22
 
 Real node-wot execution: ADR-0001 point 4, `docs/adr-0001-wot-reuse.md`.
