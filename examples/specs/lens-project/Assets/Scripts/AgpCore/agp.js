@@ -114,6 +114,35 @@ function assertBasicObject(object) {
   if (object.agp && object.agp !== AGP_VERSION) throw new Error(`Unsupported AGP version: ${object.agp}`);
 }
 
+// Case/punctuation folding in an adapter's own id-generation (WoT's
+// stableId, ARIA's slug, ...) can map two distinct source names to the
+// same candidate id. Silently letting that happen means the second
+// registration overwrites the first in AccessGraph. An adapter entry
+// point creates one allocator per scan/description and routes every
+// generated id through it so collisions are disambiguated within that
+// call, without adapters re-implementing this independently (and
+// re-introducing the same bug in one adapter after fixing it in another
+// — which is exactly how this became a shared utility instead of two
+// separate copies).
+//
+// Disambiguation checks the candidate against every id already handed
+// out, not just other collisions of the same base name: a naive
+// per-base counter can produce "a", "a-2", "a-2" instead of "a", "a-2",
+// "a-3" when a third, unrelated name naturally produces "a-2" on its own.
+export function createIdAllocator() {
+  const used = new Set();
+  return function allocate(candidateId) {
+    let id = candidateId;
+    let suffix = 2;
+    while (used.has(id)) {
+      id = `${candidateId}-${suffix}`;
+      suffix += 1;
+    }
+    used.add(id);
+    return id;
+  };
+}
+
 export function structuredCloneSafe(value) {
   if (typeof structuredClone === "function") return structuredClone(value);
   return JSON.parse(JSON.stringify(value));

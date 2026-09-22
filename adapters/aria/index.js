@@ -1,4 +1,4 @@
-import { AGP_VERSION } from "../../sdk/javascript/agp.js";
+import { AGP_VERSION, createIdAllocator } from "../../sdk/javascript/agp.js";
 
 const TAG_ROLE = {
   BUTTON: "button",
@@ -27,8 +27,9 @@ export function scanAria(root = document, options = {}) {
     "video", "audio", "[role]", "[aria-label]", "[aria-labelledby]"
   ].join(",");
   const elements = [...root.querySelectorAll(selector)];
+  const allocateId = createIdAllocator();
   return elements
-    .map((element, index) => ariaElementToAgp(element, { ...options, index, root }))
+    .map((element, index) => ariaElementToAgp(element, { ...options, index, root, allocateId }))
     .filter(Boolean);
 }
 
@@ -42,7 +43,7 @@ export function ariaElementToAgp(element, options = {}) {
   const label = accessibleLabel(element, options.root || element.ownerDocument);
   if (!label && !options.includeUnlabeled) return null;
 
-  const id = stableId(element, role, options.index ?? 0);
+  const id = stableId(element, role, options.index ?? 0, options.allocateId);
   const state = extractState(element, tag, options);
   const actions = inferActions(element, role, tag);
 
@@ -167,7 +168,17 @@ function inferActions(element, role, tag) {
   if (["input", "textbox", "combobox", "listbox", "slider", "spinbutton"].includes(role) || ["INPUT", "SELECT", "TEXTAREA"].includes(tag)) {
     return [{ id: "set_value", label: "Set value", risk: "none" }];
   }
-  if (role === "form") return [{ id: "submit", label: "Submit form", risk: "medium", confirmation: false }];
+  // A form can submit anything from a trivial search box to a payment or
+  // an irreversible account action, and this adapter has no way to tell
+  // which. It previously paired "medium" risk with an explicit
+  // `confirmation: false` — opting OUT of confirmation for an action this
+  // adapter itself doesn't actually know is safe, inconsistent with the
+  // fail-safe default used elsewhere (adapters/wot/index.js defaults an
+  // unclassified write to medium risk WITH confirmation required;
+  // SECURITY.md, specification/AGP-0.1.md). `category` is also added so
+  // an Access Profile's `confirmation_for` can target form submission
+  // specifically.
+  if (role === "form") return [{ id: "submit", label: "Submit form", risk: "medium", confirmation: true, category: "form_submission" }];
   if (role === "media") return [
     { id: "play", label: "Play", risk: "none" },
     { id: "pause", label: "Pause", risk: "none" }
@@ -184,12 +195,28 @@ function inferInputs(element, role) {
   return inputs;
 }
 
-function stableId(element, role, index) {
+// Two elements with an `id` or `name` differing only by case or
+// punctuation (e.g. id="Save-Button" and id="SAVE-BUTTON", or two
+// same-role fields named "Email" and "EMAIL") can slug() to the same
+// candidate — and a no-id/no-name element's index-based fallback can
+// independently land on that same string too (e.g. a third button at
+// index 2 naturally producing "web-button-3", colliding with an
+// id="button-3" element's "web-button-3"). `allocateId`, one instance per
+// scanAria() call, disambiguates all three id-generation paths against
+// every id already handed out in that scan, the same way
+// adapters/wot/index.js's WoT id generation does. A caller invoking
+// ariaElementToAgp() directly (not through scanAria) without an
+// allocateId gets the un-disambiguated id, as before — collision
+// detection needs visibility across multiple elements, which only
+// scanAria's multi-element scan has.
+function stableId(element, role, index, allocateId) {
   const nativeId = attr(element, "id");
-  if (nativeId) return `web-${slug(nativeId)}`;
-  const name = attr(element, "name");
-  if (name) return `web-${role}-${slug(name)}`;
-  return `web-${role}-${index + 1}`;
+  const candidate = nativeId
+    ? `web-${slug(nativeId)}`
+    : attr(element, "name")
+      ? `web-${role}-${slug(attr(element, "name"))}`
+      : `web-${role}-${index + 1}`;
+  return allocateId ? allocateId(candidate) : candidate;
 }
 
 function attr(element, name) {

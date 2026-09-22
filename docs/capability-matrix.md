@@ -9,9 +9,11 @@ The 0.1.4 fixes below (C–G) were themselves independently re-verified
 against 0.1.4 and found to contain four regressions — a claim of "fixed"
 in one release is not treated as proof past that release. 0.1.5 fixed
 those four (object/array parameter validation, proposal tamper-resistance,
-a three-way id collision, and a multi-form authorization gap); see
-`CHANGELOG.md`'s 0.1.5 entry for specifics. The table below reflects the
-current (0.1.5) state.
+a three-way id collision, and a multi-form authorization gap); 0.1.9
+applied the same identifier-collision fix to the ARIA adapter, which had
+never received it, and fixed an inconsistent form-submission default; see
+`CHANGELOG.md` for specifics. The table below reflects the current
+(0.1.9) state.
 
 ## Adapters
 
@@ -19,11 +21,11 @@ current (0.1.5) state.
 |---|---|---|---|
 | Reads native semantics without owning execution | Yes — scans DOM/ARIA, never dispatches events | Yes — reads a Thing Description, never calls a Thing's forms | N/A — presentation/session layer over the other two |
 | Produces an AGP object with role/state/actions | Yes | Yes, plus a graph decomposition (`thingDescriptionToGraph`) into property sub-objects | Consumes an existing AGP object; produces a view model |
-| Risk/confirmation defaults | Not derived from source; caller sets it | Read from `x-agp-risk` / `x-agp-confirmation` extensions on the TD, but for `physical_safety` / `security` / `financial` / `destructive` categories a source-declared value can only raise risk/confirmation, never lower it below the category's policy floor (Finding G, fixed) — the category itself is still source-declared, which is a documented, narrower remaining gap | Reads whatever the object already carries |
+| Risk/confirmation defaults | Fixed, adapter-assigned per role (e.g. link `risk: "low"`, toggle/media/set-value `risk: "none"`); form submission defaults to `risk: "medium", confirmation: true, category: "form_submission"` (was `confirmation: false` with no category — inconsistent with the fail-safe default used elsewhere, fixed in 0.1.9). No DOM signal for finer-grained risk, so this is coarse by necessity | Read from `x-agp-risk` / `x-agp-confirmation` extensions on the TD, but for `physical_safety` / `security` / `financial` / `destructive` categories a source-declared value can only raise risk/confirmation, never lower it below the category's policy floor (Finding G, fixed) — the category itself is still source-declared, which is a documented, narrower remaining gap | Reads whatever the object already carries |
 | Authorization requirement | Not modeled | Derived per-affordance: a form-level `security` override (WoT TD §5.3.4) takes precedence over the Thing-level default for that specific property/action (Finding F, fixed) | Gated in `SpecsActionSession`, with confirmation bound to immutable parameters (Finding B, fixed) |
 | State vs. defaults vs. write-only | N/A (DOM state is always "current") | Separated: only a supplied live value or a WoT `const` counts as known state; a `default` with no observation is correctly absent (not invented), and `writeOnly` properties are always excluded from state (Finding C, fixed) | Passes through whatever the WoT adapter produced |
 | Parameter schema fidelity | N/A | Object/array structure and each parameter's real `required`-ness are preserved; a schema this adapter can't represent is flagged `unsupported: true` with the original schema kept under `sourceSchema`, never silently coerced to `"string"` (Finding D, fixed) | N/A |
-| Identifier collisions | Not addressed (single scan per page) | Each entry-point call uses a per-call id allocator that disambiguates a colliding `stableId()` output (e.g. `write_x`, `write_x-2`); the original source name is preserved on the action's `metadata.wot_name` (Finding E, fixed) | N/A |
+| Identifier collisions | `scanAria()` uses one shared `createIdAllocator()` (`sdk/javascript/agp.js`) per scan, disambiguating across all three id-generation paths (native `id`, `name`, index fallback) — a native `id` can collide with another element's fallback id, not only with another native `id` (fixed 0.1.9; the standalone `ariaElementToAgp()` entry point has no allocator of its own, since collision detection needs visibility across a scan's multiple elements) | Each entry-point call uses the same shared allocator to disambiguate a colliding `stableId()` output (e.g. `write_x`, `write_x-2`); the original source name is preserved on the action's `metadata.wot_name` (Finding E, fixed) | N/A |
 | Tested | `tests/aria-adapter-test.mjs` | `tests/wot-adapter-test.mjs` | `tests/specs-adapter-test.mjs`, `tests/lens-*-test.mjs` |
 
 ## Clients

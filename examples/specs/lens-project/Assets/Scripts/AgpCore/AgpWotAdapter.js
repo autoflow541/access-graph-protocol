@@ -1,4 +1,4 @@
-import { AGP_VERSION, RISK_ORDER } from "./agp.js";
+import { AGP_VERSION, createIdAllocator, RISK_ORDER } from "./agp.js";
 
 const RISK_VALUES = new Set(RISK_ORDER);
 const PRIMITIVE_PARAMETER_TYPES = new Set(["string", "number", "integer", "boolean"]);
@@ -355,35 +355,6 @@ function assertThingDescription(td) {
 
 function stableId(value) {
   return String(value).toLowerCase().replace(/^urn:/, "").replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "") || "thing";
-}
-
-// Case/punctuation folding in stableId() can map two distinct source
-// names to the same candidate id (e.g. "Target-Temperature" and
-// "target_temperature" both fold to "target-temperature"). Silently
-// letting that happen means the second registration overwrites the first
-// in AccessGraph (audit finding E). Each adapter entry point uses its own
-// allocator instance so collisions are only disambiguated within that
-// call's own id namespace, not across unrelated Things.
-//
-// Disambiguation checks the candidate against every id already handed
-// out, not just other collisions of the same base name: an earlier
-// version incremented a per-base counter without checking whether the
-// resulting suffixed id was itself already taken by a THIRD, unrelated
-// name that happened to normalize to that exact suffixed string (e.g.
-// one name naturally producing "a-2" while two other names both collide
-// on "a" — the second one used to also become "a-2", not "a-3").
-function createIdAllocator() {
-  const used = new Set();
-  return function allocate(candidateId) {
-    let id = candidateId;
-    let suffix = 2;
-    while (used.has(id)) {
-      id = `${candidateId}-${suffix}`;
-      suffix += 1;
-    }
-    used.add(id);
-    return id;
-  };
 }
 
 function humanize(value) {

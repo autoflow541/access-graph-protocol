@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.1.9 — 2026-09-22
+
+Extends the same audit rigor applied to the WoT adapter (0.1.4/0.1.5) to
+`adapters/aria/index.js`, which had never received it. Found and fixed two
+real issues by reading the code and verifying against both hand-written
+DOM mocks and the failure scenarios they were built to reproduce.
+
+- **Fixed**: `adapters/aria/index.js`'s `stableId()` had the exact same
+  identifier-collision class as WoT's finding E, completely unfixed —
+  two elements whose `id`/`name` differ only by case or punctuation (e.g.
+  `id="Save-Button"` and `id="SAVE-BUTTON"`) silently produced the same
+  AGP id, and a native `id` could independently collide with another
+  element's index-based fallback id. Verified directly: a simulated scan
+  of two such elements now produces `web-save-button` /
+  `web-save-button-2` instead of one silently overwriting the other in
+  `AccessGraph`.
+- **Refactored**: `createIdAllocator` (originally written for the WoT
+  adapter) is now exported from `sdk/javascript/agp.js` and shared by both
+  `adapters/wot/index.js` and `adapters/aria/index.js`, instead of being
+  copy-pasted a second time — which is exactly the kind of duplication
+  that let this bug class go unfixed in one adapter after being fixed in
+  another. `scanAria()` creates one allocator per scan and threads it
+  through `stableId()`; a standalone `ariaElementToAgp()` call (not
+  through `scanAria`) has no allocator, since collision detection needs
+  visibility across a scan's multiple elements — this is documented
+  behavior, not a remaining gap.
+- **Fixed**: form submission defaulted to `risk: "medium"` paired with an
+  explicit `confirmation: false` and no `category` — opting OUT of
+  confirmation for an action the adapter has no way to know is actually
+  safe (a form can be a search box or a payment), inconsistent with the
+  fail-safe default this session established elsewhere (an unclassified
+  WoT write defaults to medium risk *with* confirmation required;
+  `specification/AGP-0.1.md`). Now defaults to `confirmation: true` with
+  `category: "form_submission"`, so an Access Profile can also target it.
+- `tests/aria-adapter-test.mjs` extended with regression tests for both
+  fixes. `docs/capability-matrix.md` updated.
+
 ## 0.1.8 — 2026-09-22
 
 Closes the previously-flagged Lens Studio gap: a parameterized action
