@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.1.6 — 2026-09-22
+
+Documentation-only release: extends the prior-art research and feeds its
+findings back into the protocol specification, and corrects README/ROADMAP
+text that had gone stale across 0.1.2–0.1.5's changes. No code changed;
+`npm test` is unaffected.
+
+- Added two prior-art comparisons to `docs/prior-art-and-positioning.md`:
+  - **AccessKit** — a real, actively developed cross-platform accessibility
+    abstraction (Rust; Windows/macOS/Linux/Android adapters, iOS in
+    progress). It has no risk/confirmation model at all, which is correct
+    for what it solves ("invoke this button" is exactly as safe as a mouse
+    click) — a clean differentiator for where AGP's scope actually starts.
+  - **Apple App Intents** — its `requestConfirmation` API has documented
+    cases of silently not showing a confirmation dialog when an intent is
+    invoked via Siri or from a widget. This is a concrete, real-world
+    precedent for why AGP keeps confirmation/authorization as explicit
+    session states every input path must pass through, not a dialog call
+    a particular modality can bypass.
+- Fed both lessons (and the finding-B parameter-binding and finding-G
+  policy-floor fixes from 0.1.4/0.1.5) back into `specification/AGP-0.1.md`
+  as normative requirements, so a future non-JavaScript AGP implementation
+  doesn't have to independently rediscover them.
+- Corrected `ROADMAP.md`'s finding-G note, which still described the
+  category-trust gap as fully open after the `categoryPolicy` mitigation
+  in 0.1.4 had already partially closed it.
+- Updated `README.md`'s WoT/SPECS section to mention the risk/confirmation
+  policy floor and parameter-binding proposal model, and its repository
+  index to list the two new prior-art sections.
+- `CONTRIBUTING.md` now points proposers at `docs/prior-art-and-positioning.md`
+  before adding a new vocabulary term.
+
 ## 0.1.5 — 2026-09-22
 
 Fixes four regressions in 0.1.4's fixes, independently reproduced and

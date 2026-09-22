@@ -51,6 +51,45 @@ expresses — not a competing device-description format. See
 `docs/adr-0001-wot-reuse.md` for the concrete decision this implies for
 `schema/access-graph.schema.json`.
 
+## AccessKit
+
+AccessKit is a real, actively developed (Rust, with C/Python bindings)
+cross-platform accessibility abstraction: a UI toolkit that renders its
+own widgets (rather than using native OS controls) builds one AccessKit
+node tree — id, role, name, state, and the actions available on each
+node (focus, invoke, select text, …) — and AccessKit's platform adapters
+translate that tree into Windows UI Automation, macOS NSAccessibility,
+Linux/Unix AT-SPI, and Android's accessibility API (an iOS/UIKit adapter
+is in progress as of 2026). A screen reader on any of those platforms then
+talks to the app through the OS's native accessibility API as usual —
+AccessKit's job is only to stop every toolkit from having to implement
+each of those native APIs separately.
+
+Critically, AccessKit's action model has **no risk, confirmation, or
+authorization concept at all**, and the public documentation of its
+schema doesn't describe one. That's the right design *for what it's
+solving*: "invoke this button" through AccessKit is exactly as safe as a
+mouse click on that same button would have been — the app's own logic
+still decides what happens, AccessKit just proxies the OS's native
+"activate this control" request into the app's UI event loop. There is no
+new safety surface to gate, because AccessKit doesn't let an assistive
+technology do anything a sighted mouse user couldn't already do through
+the same UI.
+
+**What this means for AGP:** AccessKit is close prior art for the specific
+sub-problem of "let assistive tech operate a custom-rendered UI toolkit,"
+solved well, and there is no reason for AGP to compete with it there — a
+future ARIA-adjacent AGP client on a platform that already has an
+AccessKit integration should sit on top of it, not reinvent the
+OS-accessibility-API plumbing AccessKit already handles. AGP's actual
+scope starts exactly where AccessKit's stops: the moment "invoking a
+control" stops being equivalent to a mouse click and starts being a
+device action, a financial transaction, or something with a real-world
+consequence a mouse click on a GUI button wouldn't have had — that's
+where a risk/confirmation/authorization model earns its cost, and where
+AGP's `adapters/specs/index.js` proposal lifecycle
+(`docs/adr-0001-wot-reuse.md`) has no AccessKit equivalent to defer to.
+
 ## WAI-Adapt
 
 WAI-Adapt is W3C work on semantic information that enables content
@@ -97,6 +136,33 @@ AI agent discover and propose them) is plausible future work, but it must
 call through the *same* validated execution service as every other
 client — an AI-supplied or device-supplied risk label is not permission,
 exactly as MCP's own trust model states for its own annotations.
+
+## Apple App Intents — a documented cautionary precedent, not just a comparison
+
+App Intents is Apple's shipping framework for exposing an app's actions to
+Siri, Shortcuts, and widgets, with declarative parameters and an explicit
+`requestConfirmation` API an intent can call before acting. On paper this
+is close to AGP's confirmation step. In practice, developers have
+documented `requestConfirmation` **failing to show a confirmation dialog
+at all when the intent is invoked through Siri, or when called from a
+widget's `perform` function** — the confirmation step that exists in code
+does not reliably reach the user for every input modality the intent can
+be triggered from.
+
+**What this means for AGP:** this is exactly the failure mode
+`SECURITY.md` and `adapters/specs/index.js` are built to make structurally
+impossible rather than merely encouraged against: AGP's confirmation and
+authorization are separate, explicit *states* an action must pass through
+in the session object itself (`nextStatus`, `SpecsActionSession`), not a
+dialog call an input path can bypass by construction. A voice-triggered
+`selectAction` and a hand-triggered one both go through the identical
+`request()` → `confirmation_required` → `confirm()` state machine in
+`AgpSpecsSessionController` — there is no separate "Siri path" that skips
+it, because there is no modality-specific code path to skip it *from*.
+App Intents' documented gap is a concrete, real-world argument for keeping
+that design, not a hypothetical one: a confirmation mechanism that a
+particular input modality can silently miss is worse than no confirmation
+mechanism, because it looks safe in code review.
 
 ## A2UI
 

@@ -9,7 +9,7 @@ AGP should remain small. Prefer mapping an existing semantic concept before addi
 A proposal should answer:
 
 1. What interaction problem does this solve?
-2. Can an existing ARIA, platform accessibility, Web of Things, Matter, or similar concept represent it already?
+2. Can an existing ARIA, platform accessibility, Web of Things, Matter, AccessKit, WAI-Adapt, or similar concept represent it already? See `docs/prior-art-and-positioning.md` before proposing a new vocabulary term.
 3. Does the proposed field expose meaning/capability rather than presentation?
 4. What privacy or safety consequences does it create?
 5. Can the proposal be demonstrated in at least two different technology domains?

@@ -1,7 +1,7 @@
 # Access Graph Protocol (AGP)
 
 [![test](https://github.com/autoflow541/access-graph-protocol/actions/workflows/test.yml/badge.svg)](https://github.com/autoflow541/access-graph-protocol/actions/workflows/test.yml)
-[![npm version](https://img.shields.io/badge/version-0.1.5-blue)](CHANGELOG.md)
+[![npm version](https://img.shields.io/badge/version-0.1.6-blue)](CHANGELOG.md)
 [![license: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![status: experimental](https://img.shields.io/badge/status-experimental-orange)](ROADMAP.md)
 
@@ -67,7 +67,7 @@ A separate **Access Profile** describes functional interaction preferences witho
 - `examples/smart-device/` — WoT thermostat and SPECS-view simulator
 - `examples/specs/` — Lens Studio porting contract, controller, and a real Lens Studio (SPECS/Spectacles) project source tree in `examples/specs/lens-project/`
 - `tests/` — SDK and adapter tests
-- `docs/prior-art-and-positioning.md` — how AGP relates to Universal Remote Console, W3C WoT, WAI-Adapt, MCP, A2UI, and XR accessibility research
+- `docs/prior-art-and-positioning.md` — how AGP relates to Universal Remote Console, W3C WoT, AccessKit, WAI-Adapt, MCP, Apple App Intents, A2UI, and XR accessibility research
 - `docs/capability-matrix.md` — what's actually implemented today, per adapter and client, verified against source
 - `docs/adr-0001-wot-reuse.md` — the architecture decision on reusing WoT rather than competing with it
 - `ROADMAP.md` — prototype-to-standardization roadmap, including a milestone plan with acceptance criteria
@@ -101,9 +101,9 @@ It currently recognizes common interactive controls including buttons, links, te
 
 ## WoT and SPECS interoperability
 
-The WoT adapter maps Thing Description properties, actions, events, and security declarations into AGP without taking over transport or credentials. Unknown writes and device actions fail safe: they default to medium risk and explicit confirmation.
+The WoT adapter maps Thing Description properties, actions, events, and security declarations into AGP without taking over transport or credentials. Unknown writes and device actions fail safe: they default to medium risk and explicit confirmation, and for `physical_safety`/`security`/`financial`/`destructive` categories a source-declared risk or confirmation value can only raise the effective requirement, never lower it below a policy floor — see `SECURITY.md` and `docs/capability-matrix.md`.
 
-The SPECS adapter converts the same AGP object and Access Profile into a world-panel view model and a gated action session suitable for a Lens. It supports hand/voice selection, captions, speech, large text, high contrast, reduced motion, and one-step flows at the semantic layer. `examples/specs/lens-project/` builds on this with real Lens Studio TypeScript source for Lens Studio 5.22+ / SPECS 27, Spectacles UI Kit, and the Spectacles Interaction Kit; it still needs on-device testing — see `examples/specs/lens-project/SETUP.md`.
+The SPECS adapter converts the same AGP object and Access Profile into a world-panel view model and a gated action session suitable for a Lens. It supports hand/voice selection, captions, speech, large text, high contrast, reduced motion, and one-step flows at the semantic layer, and binds an action's parameters into an immutable, deep-frozen proposal at request time — confirming an action confirms the exact parameters that will run, not just the action id. `examples/specs/lens-project/` builds on this with real Lens Studio TypeScript source for Lens Studio 5.22+ / SPECS 27, Spectacles UI Kit, and the Spectacles Interaction Kit; it still needs on-device testing — see `examples/specs/lens-project/SETUP.md`.
 
 ## Design principles
 

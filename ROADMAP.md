@@ -98,9 +98,14 @@ and the roadmap should say so rather than checking it off anyway.
       separately-defined policy default, never lower it. Acceptance: a
       test TD that declares a `physical_safety`-category action as
       `x-agp-risk: "none"` still resolves to at least the policy's floor
-      for that category. Verified: `tests/wot-adapter-test.mjs`. Known
-      remaining gap: the category itself is still source-declared — see
-      `docs/capability-matrix.md`, Finding G.
+      for that category. Verified: `tests/wot-adapter-test.mjs`.
+      Follow-up closed: `options.categoryPolicy` lets a caller who has
+      reviewed a device correct a mislabeled `x-agp-category`, and every
+      action now carries `metadata.category_trust: "reviewed" |
+      "declared"` so an unreviewed claim is visible rather than silently
+      indistinguishable from a reviewed one. Residual gap, not closable
+      client-side: without a supplied policy, a device can still mislabel
+      its own category — see `docs/capability-matrix.md`, Finding G.
 
 **M2 — Execution service and browser reference workflow**
 - [ ] One execution integration chosen and implemented (`node-wot` for

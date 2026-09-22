@@ -51,6 +51,10 @@ Accessibility preferences MUST NOT bypass authentication, authorization, interlo
 
 Input recognition is not authorization. A gesture, gaze selection, switch event, voice match, AI interpretation, or possession of an interface device MUST NOT be treated as proof that an action is authorized. An adapter MUST preserve the underlying platform's authorization boundary.
 
+Confirmation MUST bind to a specific, validated set of parameters, not only to an action id. If an action takes parameters, "confirming the action" without reference to what those parameters are is not a meaningful confirmation — a client MUST treat a change in parameters after confirmation as invalidating that confirmation, requiring a new proposal.
+
+Confirmation and authorization MUST remain distinct, checkable states, not a callback or dialog a caller can invoke and fail to reach the user. An interaction path (e.g. a voice command) that can trigger an action MUST route through the same confirmation/authorization states as every other input path for that action — there MUST NOT be an input-modality-specific way to skip either state. (Apple's App Intents framework has documented cases where `requestConfirmation` silently fails to surface a dialog when an intent is invoked via voice or from a widget context — this is the concrete failure class this requirement exists to prevent.)
+
 ## Access Profile
 
 Profiles express **functional preferences**, not diagnoses. The user should control disclosure, and a client should disclose only what is needed for the current interaction.
@@ -106,6 +110,8 @@ An adapter translates an existing structured source into AGP and records its pro
 - A SPECS adapter maps AGP semantics and Access Profile preferences to XR presentation and interaction. SPECS/Lens Studio remains responsible for rendering, tracking, input, and platform permissions.
 
 Adapters SHOULD use conservative risk defaults when a source action has no explicit safety classification. They MUST NOT silently classify an unknown physical or device-control action as harmless.
+
+A source-declared risk, confirmation requirement, or category is untrusted metadata, not policy. It MAY raise an action's effective risk or confirmation requirement above an adapter's own defaults; it MUST NOT be able to lower a restricted category (physical motion, security, financial, or destructive operations) below a policy floor the adapter itself defines. This mirrors the trust boundary the Model Context Protocol specifies for its own tool annotations: a source's self-description informs presentation, but MUST NOT be the sole gate on a safety-relevant decision. Because the category label itself is typically also source-declared, an adapter SHOULD record whether an action's category came from a reviewed, out-of-band source or only from the source being described, so a client or operator can tell an unreviewed claim apart from a reviewed one instead of treating both as equally trustworthy.
 
 ## Design principle
 
