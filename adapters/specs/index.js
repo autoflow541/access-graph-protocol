@@ -38,6 +38,14 @@ export function toSpecsView(object, profile = {}) {
 /**
  * Safety gate between a SPECS UI event and an underlying AGP action executor.
  * The session never treats gaze, hand tracking, or voice recognition as auth.
+ *
+ * A request() call creates an immutable proposal: the action's parameters
+ * are validated and bound at that point, not supplied later at execute().
+ * This closes a confirmation/execution mismatch — without it, a user could
+ * confirm one action and have a different set of parameters run, because
+ * confirm()/provideAuthorization() only ever referenced the action id, not
+ * what it would actually do. execute() uses the bound parameters and
+ * rejects an attempt to substitute different ones.
  */
 export class SpecsActionSession {
   constructor(graph, profile = {}, executor = null) {
@@ -47,11 +55,13 @@ export class SpecsActionSession {
     this.pending = null;
   }
 
-  request(objectId, actionId) {
+  request(objectId, actionId, parameters = {}) {
     const resolved = this.graph.resolveAction(objectId, actionId, this.profile);
+    const validatedParameters = validateParameters(resolved.action, parameters);
     this.pending = {
       objectId,
       actionId,
+      parameters: validatedParameters,
       confirmed: !resolved.requiresConfirmation,
       authorized: !resolved.authorizationRequired
     };
@@ -83,15 +93,22 @@ export class SpecsActionSession {
     return { status: nextStatus(this.pending), message: statusMessage(this.pending) };
   }
 
-  async execute(parameters = {}) {
+  async execute(parameters) {
     if (!this.pending) throw new Error("No pending SPECS action");
     const status = nextStatus(this.pending);
     if (status !== "ready") throw new Error(`Action is not ready: ${status}`);
     if (typeof this.executor !== "function") throw new Error("No device action executor configured");
 
+    const isOverride = parameters !== undefined && Object.keys(parameters).length > 0;
+    if (isOverride && !parametersMatch(parameters, this.pending.parameters)) {
+      throw new Error(
+        `Execution parameters for ${this.pending.actionId} do not match the confirmed proposal. Cancel and submit a new request to change parameters.`
+      );
+    }
+
     const pending = { ...this.pending };
     this.pending = null;
-    const result = await this.executor(pending.objectId, pending.actionId, parameters);
+    const result = await this.executor(pending.objectId, pending.actionId, pending.parameters);
     return { status: "executed", result };
   }
 
@@ -138,6 +155,57 @@ function statusMessage(pending) {
 
 function normalize(value) {
   return String(value || "").trim().toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ");
+}
+
+// Validates supplied parameters against the action's declared parameter
+// schema (as produced by adapters/wot/index.js's schemaParameter) and
+// returns only the recognized, valid values — this is what gets bound to
+// the proposal, so an unvalidated or unrecognized value can never reach
+// an executor.
+function validateParameters(action, parameters) {
+  const schema = action.parameters;
+  if (!schema) return {};
+
+  const supplied = parameters || {};
+  const validated = {};
+  for (const [name, paramSchema] of Object.entries(schema)) {
+    const value = supplied[name];
+    if (value === undefined) {
+      if (paramSchema.required) throw new Error(`Missing required parameter "${name}" for action ${action.id}`);
+      continue;
+    }
+    if (!typeMatches(paramSchema.type, value)) {
+      throw new Error(`Parameter "${name}" for action ${action.id} must be of type ${paramSchema.type}`);
+    }
+    if (typeof value === "number") {
+      if (paramSchema.minimum !== undefined && value < paramSchema.minimum) {
+        throw new Error(`Parameter "${name}" for action ${action.id} is below minimum ${paramSchema.minimum}`);
+      }
+      if (paramSchema.maximum !== undefined && value > paramSchema.maximum) {
+        throw new Error(`Parameter "${name}" for action ${action.id} is above maximum ${paramSchema.maximum}`);
+      }
+    }
+    if (Array.isArray(paramSchema.enum) && !paramSchema.enum.includes(value)) {
+      throw new Error(`Parameter "${name}" for action ${action.id} must be one of: ${paramSchema.enum.join(", ")}`);
+    }
+    validated[name] = value;
+  }
+  return validated;
+}
+
+function typeMatches(type, value) {
+  if (type === "integer") return Number.isInteger(value);
+  if (type === "number") return typeof value === "number" && Number.isFinite(value);
+  if (type === "boolean") return typeof value === "boolean";
+  return typeof value === "string";
+}
+
+function parametersMatch(a, b) {
+  return JSON.stringify(sortedEntries(a)) === JSON.stringify(sortedEntries(b));
+}
+
+function sortedEntries(value) {
+  return Object.entries(value || {}).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
 }
 
 function humanize(value) {

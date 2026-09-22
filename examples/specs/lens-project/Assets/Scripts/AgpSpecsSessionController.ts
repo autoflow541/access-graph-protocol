@@ -61,9 +61,15 @@ export class AgpSpecsSessionController extends BaseScriptComponent {
     return toSpecsView(this.currentObject(), this.deviceSource.profile);
   }
 
-  /** Entry point for a hand-input trigger OR an exact-match voice command. Neither is authorization. */
-  selectAction(actionId: string): void {
-    const result = this.session.request(this.deviceSource.deviceObjectId, actionId);
+  /**
+   * Entry point for a hand-input trigger OR an exact-match voice command.
+   * Neither is authorization. `parameters` (if the action needs any) are
+   * validated and bound to the proposal here — AgpSpecsSessionController
+   * never lets confirmation happen against one set of parameters and
+   * execution happen against another.
+   */
+  selectAction(actionId: string, parameters: Record<string, unknown> = {}): void {
+    const result = this.session.request(this.deviceSource.deviceObjectId, actionId, parameters);
     this.broadcastPrompt(result.message, result.status as SpecsActionState);
   }
 
@@ -85,10 +91,11 @@ export class AgpSpecsSessionController extends BaseScriptComponent {
     this.broadcastPrompt(result.message, result.status as SpecsActionState);
   }
 
-  async execute(parameters: Record<string, unknown> = {}): Promise<void> {
+  /** Runs the already-bound, already-confirmed, already-authorized proposal. Takes no new parameters. */
+  async execute(): Promise<void> {
     this.setBusy(true);
     try {
-      const result = await this.session.execute(parameters);
+      const result = await this.session.execute();
       this.broadcastPrompt("Action completed.", result.status as SpecsActionState);
       this.surfaces.forEach((surface) => surface.announce("Action completed."));
     } finally {
@@ -108,9 +115,17 @@ export class AgpSpecsSessionController extends BaseScriptComponent {
 
   private broadcastPrompt(message: string, status: SpecsActionState) {
     this.renderPanel();
+    // adapters/specs/index.js's message text stays platform-neutral — it
+    // doesn't know whether it's backed by a simulation or a real
+    // device/account service. This reference project's authorization
+    // executor IS a simulation (see authorizationFinished above), so the
+    // disclosure is added here, once, so every surface (visual panel,
+    // gate, captions, speech) gets the identical disclosed text rather
+    // than only whichever surface happened to add its own label.
+    const disclosed = status === "authorization_required" ? `(Simulated) ${message}` : message;
     this.surfaces.forEach((surface) => {
-      surface.showPrompt(message, status);
-      surface.announce(message);
+      surface.showPrompt(disclosed, status);
+      surface.announce(disclosed);
     });
   }
 

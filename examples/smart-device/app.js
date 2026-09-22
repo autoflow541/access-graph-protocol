@@ -61,7 +61,7 @@ target.addEventListener("input", () => {
   requestedTarget = Number(target.value);
   targetValue.value = `${requestedTarget}°C`;
 });
-target.addEventListener("change", () => begin("write_targettemperature"));
+target.addEventListener("change", () => begin("write_targettemperature", { value: requestedTarget }));
 
 function render() {
   const current = graph.get(object.id);
@@ -81,15 +81,20 @@ function actionButton(action) {
   return button;
 }
 
-function begin(actionId) {
-  const result = session.request(object.id, actionId);
+function begin(actionId, parameters = {}) {
+  const result = session.request(object.id, actionId, parameters);
   showGate(result.status, result.message);
 }
 
 function showGate(status, message) {
+  // adapters/specs/index.js's message text stays platform-neutral — this
+  // demo's authorization step is a local simulation, so the disclosure is
+  // added here, once, so both the visible gate text and the screen-reader
+  // announcer get the identical disclosed text.
+  const disclosed = status === "authorization_required" ? `(Simulated) ${message}` : message;
   gate.hidden = false;
-  gateMessage.textContent = message;
-  announcer.textContent = message;
+  gateMessage.textContent = disclosed;
+  announcer.textContent = disclosed;
   gateActions.replaceChildren();
 
   if (status === "confirmation_required") {
@@ -109,9 +114,11 @@ function advance(result) {
 }
 
 async function execute() {
-  const pendingAction = session.pending?.actionId;
-  const parameters = pendingAction === "write_targettemperature" ? { value: requestedTarget } : {};
-  await session.execute(parameters);
+  // Parameters are already bound to the proposal from begin() and were
+  // carried through confirmation/authorization — execute() does not
+  // accept a new value here, so a dragged-but-not-resubmitted slider
+  // change can never silently swap in for what was actually confirmed.
+  await session.execute();
   showGate("executed", "Action completed.");
 }
 

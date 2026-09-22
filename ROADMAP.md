@@ -50,3 +50,150 @@ AGP is currently an experimental interoperability prototype. The roadmap priorit
 A 1.0 proposal should not be declared until AGP demonstrates useful interoperability across at least three independent technology domains and has external implementer feedback.
 
 Potential standardization paths to evaluate after the prototype is validated include W3C Community Group incubation and collaboration with existing accessibility, web-of-things, assistive-technology, and device-interoperability communities.
+
+## Milestone plan and acceptance criteria
+
+Ordered by dependency, not calendar time — this repo does not commit to
+dates it doesn't control. Each milestone's acceptance criteria are meant
+to be checked, not asserted: if a criterion can't be verified (no
+hardware, no participants yet), the milestone is not done, it's blocked,
+and the roadmap should say so rather than checking it off anyway.
+
+**M1 — Fix the audit findings that touch trust and correctness**
+(`docs/capability-matrix.md`, Findings A–G)
+- [x] A: Lens authorization prompt visibly labeled as simulated.
+- [x] B: Confirmation bound to immutable, validated parameters; a changed
+      parameter after confirmation requires a new proposal and cannot
+      reuse an existing confirmation. Acceptance: a test that confirms
+      one parameter value, then calls execute with a different value, and
+      asserts it is rejected — not just that the "right" path works.
+- [ ] C: WoT state projection separates observed values from schema
+      defaults and excludes write-only properties. Acceptance: a test
+      Thing Description with a `default` on a property that has never
+      been read reports that property as unknown/absent, not as the
+      default value; a `writeOnly` property never appears in `state`.
+- [ ] D: WoT parameter schema translation preserves supported structures
+      (objects/arrays, not just string/number/integer/boolean) and each
+      parameter's real `required`-ness, and clearly rejects or flags
+      schemas it can't represent instead of silently coercing them.
+      Acceptance: a test with an unsupported schema type asserts the
+      adapter either preserves enough structure to round-trip it or
+      throws/flags it — never silently emits `type: "string"`.
+- [ ] E: Identifier generation is collision-safe. Acceptance: a test
+      registers two source objects whose names differ only by case or
+      punctuation and asserts both are present in the resulting graph
+      under distinct ids, with the original source name preserved
+      somewhere on the object.
+- [ ] F: Authorization requirement reads per-form security and security
+      requirement combinations, not only top-level `td.security`.
+      Acceptance: a test TD with a form-level security override produces
+      a different `authorizationRequired` result than the Thing-level
+      default would imply.
+- [ ] G: Source-declared `x-agp-risk` / `x-agp-confirmation` can only
+      raise the effective risk/confirmation requirement relative to a
+      separately-defined policy default, never lower it. Acceptance: a
+      test TD that declares a `physical_safety`-category action as
+      `x-agp-risk: "none"` still resolves to at least the policy's floor
+      for that category.
+
+**M2 — Execution service and browser reference workflow**
+- [ ] One execution integration chosen and implemented (`node-wot` for
+      WoT-sourced actions, evaluated per `docs/adr-0001-wot-reuse.md`).
+      Home Assistant's WebSocket API evaluated as a second, later backend
+      for real-device bridging — not built in this milestone.
+- [ ] The action lifecycle (proposal → validation → confirmation →
+      server-side authorization → dispatch → pending →
+      succeeded/failed/cancelled/unknown) exists server-side, with a
+      request id, target/action ids, validated parameters, a state
+      version, and duplicate-request handling. Acceptance: a request
+      replayed with the same request id does not dispatch twice; a
+      request whose bound state version is stale is rejected with a
+      specific "state changed, re-propose" outcome rather than executing
+      against stale assumptions.
+- [ ] Browser reference client (`examples/smart-device/` evolved, or a
+      new example) completes the room-control tasks: read temperature and
+      device status; propose and execute a bounded simulated
+      target-temperature change; switch one real lamp on/off through the
+      execution service; see success, denial, disconnection, and
+      uncertain-outcome states distinctly; cancel a pending action before
+      dispatch. Acceptance: each of those five is a distinct, demonstrable
+      flow, keyboard- and screen-reader-operable.
+
+**M3 — Real device connected, SPECS client compiled and integrated**
+- [ ] One real lamp switched on/off end-to-end through the execution
+      service (heating, locks, robot motion, and drone flight stay
+      simulated until the execution model from M2 has been reviewed).
+- [ ] `examples/specs/lens-project/` actually compiles in Lens Studio
+      5.22+ against the real, currently-installed SIK and Spectacles UI
+      Kit package versions (not just reviewed as source) and connects to
+      the M2 execution service instead of the in-Lens simulated
+      thermostat. Acceptance: `docs/capability-matrix.md`'s SPECS client
+      row changes from "source-complete, not tested on hardware" to a
+      dated note of what was actually verified and on which package
+      versions.
+- [ ] Parameter entry and error recovery tested in the browser and (once
+      compiled) in Lens Studio preview: denied permission, a
+      network/device disconnect, and an ambiguous or unrecognized voice
+      command each produce a distinct, understandable outcome rather than
+      a silent failure or a guessed action.
+
+**M4 — On-device Spectacles test and formative accessibility study**
+- [ ] Hand tracking and exact-phrase ASR tested on physical Spectacles
+      hardware, including denied microphone/network permission and a
+      speech recognition error, not only the happy path. ASR does not run
+      in desktop preview — this criterion is not satisfiable without
+      hardware access, and should stay unchecked (not assumed) until it
+      is.
+- [ ] A small paid formative study (roughly 5–8 participants whose access
+      needs match the room-control tasks) compares the existing
+      interface and the AGP-driven one on the same tasks, measuring
+      independent completion, errors/unintended actions, assistance
+      required, effort/fatigue, understanding of state and outcomes, and
+      recovery after errors — combined with an expert accessibility
+      evaluation using the assistive technologies participants actually
+      use. Acceptance: a written report of what was measured and found,
+      including negative results, not a marketing summary.
+- [ ] Findings from the study are triaged into fixes before any pilot
+      conversation, not deferred past it.
+
+**M5 — External pilot and independent implementation**
+- [ ] A scoped, paid pilot with defined acceptance criteria agreed before
+      the work starts (not after).
+- [ ] An outside developer (not the original author) builds a small
+      integration from the published documentation alone, without
+      side-channel help. Acceptance: they either succeed, in which case
+      the documentation is validated, or their blockers are logged as
+      documentation/API defects to fix — this is a test of the docs, not
+      of the developer.
+- [ ] An honest implementation report is published, including what did
+      not work.
+
+**M6 — Standardization conversation**
+- [ ] Prior art, unmet requirements, supported mappings, compatibility
+      rules, testable assertions, and independent implementation results
+      are written up (this document plus `docs/prior-art-and-positioning.md`
+      and `docs/capability-matrix.md` are the start of that, not the
+      finished version).
+- [ ] Conversations started with W3C Web of Things, W3C accessibility/
+      personalization communities, XR accessibility researchers, and at
+      least one independent AT developer or implementer, before pursuing
+      formal incubation.
+
+### Stop or narrow conditions
+
+Re-evaluate the whole effort, rather than pushing forward on schedule, if
+any of these hold at a milestone checkpoint:
+
+- Formative or pilot users show no meaningful benefit over the existing
+  interface on the same tasks.
+- Integrating AGP into a real client takes as much custom work as just
+  building a separate accessible UI for that client would have.
+- Interviewed buyers can't name a specific deployment they'd pay for.
+- An independent developer cannot implement a client or adapter from the
+  published documentation alone.
+
+If WoT plus existing UI/accessibility technology turns out to solve the
+problem adequately on its own, the right outcome is narrowing AGP to a
+profile, toolkit, or extension of that existing work (consistent with
+`docs/adr-0001-wot-reuse.md`) rather than insisting on a standalone
+protocol for its own sake.

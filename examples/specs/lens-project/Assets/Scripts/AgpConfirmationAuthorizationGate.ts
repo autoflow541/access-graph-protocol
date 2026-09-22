@@ -14,7 +14,11 @@ import { AgpSpecsSessionController, AgpSpecsSurface, SpecsActionState } from "./
  *   confirmation_required -> Confirm / Cancel
  *   authorization_required -> Authorize / Deny   (delegates to the
  *       underlying service per SECURITY.md — see AgpSpecsSessionController
- *       .authorizationFinished)
+ *       .authorizationFinished. THIS REFERENCE PROJECT'S authorize(true)
+ *       is a stand-in for that real decision — see the "(Simulated)"
+ *       label below. A real integration replaces AgpDeviceSource's
+ *       in-Lens executor with one that calls an actual account/device
+ *       authorization flow; nothing in this gate changes when it does.)
  *   ready -> Execute / Cancel   (both gates already passed; this step only
  *       runs the action, it never grants confirmation or authorization)
  *   anything else -> hidden
@@ -104,8 +108,11 @@ export class AgpConfirmationAuthorizationGate extends BaseScriptComponent implem
       this.primaryInstance = this.spawnButton(this.primaryButtonPrefab, "confirm", "Confirm", () => this.confirm(true));
       this.secondaryInstance = this.spawnButton(this.secondaryButtonPrefab, "cancel", "Cancel", () => this.cancel());
     } else if (this.status === "authorization_required") {
-      this.primaryInstance = this.spawnButton(this.primaryButtonPrefab, "authorize", "Authorize on paired device", () =>
-        this.authorize(true)
+      this.primaryInstance = this.spawnButton(
+        this.primaryButtonPrefab,
+        "authorize",
+        "Simulate authorization on paired device",
+        () => this.authorize(true)
       );
       this.secondaryInstance = this.spawnButton(this.secondaryButtonPrefab, "deny", "Deny", () => this.authorize(false));
     } else if (this.status === "ready") {
