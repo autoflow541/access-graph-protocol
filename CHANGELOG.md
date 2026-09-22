@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.1.22: 2026-09-22
+
+A sixth media type, and a second real-production-backed one.
+
+- New `adapters/web-scan/`: models a website and Auto-Flow's
+  already-deployed WCAG scanner (scan.auto-flow.co, Playwright +
+  axe-core) as an AGP object. Unlike every other AI leg in this repo,
+  it's honestly labeled as a deterministic, rule-based audit
+  (`source.type: "structured_api"`), not an AI judgment call, even
+  though the real service's response also carries an AI-generated
+  review alongside the rule results. One action, `check_accessibility`:
+  no invented remediation step where the real backend has none.
+- New `service/web-scan-executor.mjs`: the simplest integration of any
+  leg so far, a plain JSON `{url}` body, no file encoding, since the
+  scanner fetches and renders the page itself.
+- New `service/run-local-web-scan.mjs`
+  (`npm run service:dev:web-scan`), `dispatchTimeoutMs` raised to 60s
+  (a real scan render takes longer than a device property write, same
+  finding as the PDF leg).
+- New `tests/web-scan-test.mjs`: object shape, zero-friction lifecycle,
+  request/response plumbing, with `fetch` stubbed rather than calling
+  the real service on every `npm test`.
+- Verified live against **production**, not a simulation: the full
+  propose → execute lifecycle over real HTTP, scanning
+  `www.auto-flow.co` itself: score 89, 1 real issue, 48 real passes,
+  ~19s observed.
+- Docs updated: `README.md`, `ROADMAP.md`'s 0.2 milestone, `NEXT.md`,
+  `SECURITY.md`.
+
 ## 0.1.21: 2026-09-22
 
 A fifth media type, and the strongest reuse proof yet: zero new executor code.

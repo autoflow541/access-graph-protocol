@@ -93,6 +93,24 @@ AGP is currently an experimental interoperability prototype. The roadmap priorit
       browser tab (no demo page built for this leg yet, and this
       environment's sandboxed browser pane has the same real-camera-style
       access limits already documented for vision-assistant).
+- [x] WCAG scan capability (`adapters/web-scan/`): a sixth media type,
+      and the second (after `adapters/pdf-remediation/`) backed by
+      already-deployed production infrastructure (Auto-Flow's
+      scan.auto-flow.co, Playwright + axe-core) rather than something
+      built for this repo. Unlike every other AI leg here, this one is
+      honestly labeled as a deterministic, rule-based audit, not an AI
+      judgment call (`source.type: "structured_api"`), even though the
+      real service's own response also carries an AI-generated review
+      alongside the rule results. One action, `check_accessibility`,
+      because that is what the real backend actually does (audit, not
+      fix); no invented "remediate" step where the backend has none.
+      Verified live, for real, against production, through the full
+      propose → execute lifecycle over real HTTP: scanned
+      `www.auto-flow.co` itself, score 89, 1 real issue, 48 real passes,
+      ~19s observed (the reason `dispatchTimeoutMs` is raised here too,
+      same finding as the PDF leg). The simplest integration of any leg
+      so far: a plain JSON `{url}` body, no file encoding needed, since
+      the scanner fetches and renders the page itself.
 - [ ] Lens Studio (SPECS 27) project: source complete in `examples/specs/lens-project/` (real TypeScript against SIK/Spectacles UI Kit/ASR/TTS, world-locked controls, hand + exact-voice input, a bounded-numeric-parameter slider control, captions/speech/large-text/high-contrast/reduced-motion/one-step, confirmation and authorization kept as separate gates); not yet device-tested (see "0.4: Real-world pilots")
 - [ ] Matter capability mapping experiment: data-model and trust-boundary decision already made in `docs/adr-0001-wot-reuse.md` (item 6) and researched in `docs/prior-art-and-positioning.md`; not yet implemented as an adapter
 - [ ] MCP tool projection for AGP actions

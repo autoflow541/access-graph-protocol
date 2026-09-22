@@ -217,6 +217,30 @@ function. Not verified: real screenshot capture from a live browser tab.
 No demo page exists yet for this leg (unlike vision-assistant's
 `examples/vision-assistant/`).
 
+## WCAG scan capability: started, not finished
+
+`adapters/web-scan/` is a sixth media type, and a second real-production-
+backed one (Auto-Flow's scan.auto-flow.co, Playwright + axe-core), after
+`adapters/pdf-remediation/`. Unlike every other AI leg in this repo, it's
+honestly labeled as a deterministic, rule-based audit
+(`source.type: "structured_api"`), not an AI judgment call, even though
+the real service's response also carries an AI-generated review
+alongside the rule results. One action, `check_accessibility`: no
+invented remediation step where the real backend has none.
+
+Verified live against production, for real: the full propose → execute
+lifecycle over real HTTP, scanning `www.auto-flow.co` itself (score 89,
+1 real issue, 48 real passes, ~19s observed). The simplest integration
+of any leg so far: a plain `{url}` JSON body, no file encoding needed,
+since the scanner fetches and renders the page itself. Same
+`dispatchTimeoutMs` finding as the PDF leg: a real scan takes longer
+than a device property write, so the default 10s was raised to 60s.
+
+Not done: `tests/web-scan-test.mjs` stubs the network rather than
+calling the real service on every `npm test`; the real-backend
+verification above was manual, not repeatable CI coverage. No browser
+demo yet.
+
 ## Still open
 
 WoT schema coverage, cross-discovery stable IDs, Lens Studio/hardware

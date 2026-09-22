@@ -16,6 +16,8 @@ For the `physical_safety`, `security`, `financial`, and `destructive` action cat
 
 `adapters/web-vision/` sends a full screenshot to the configured describer, which can contain private account content, messages, or anything else visible on screen at the moment of capture, same caution as `adapters/vision-assistant/`'s camera frames above.
 
+`adapters/web-scan/` sends a URL to the configured scan backend, which fetches and renders it server-side. Do not scan a URL behind authentication you are not permitted to expose to a third-party service.
+
 `adapters/pdf-remediation/` sends the full PDF to a configured remediation backend (Auto-Flow's pdf.auto-flow.co by default, `AGP_PDF_SERVICE_URL` to point elsewhere). Do not use this on a document you are not permitted to send to that service. `remediate` requires confirmation for exactly this reason, alongside it being an AI-judgment action: a person should see that a document is about to be sent out for processing, not have it happen silently.
 
 `service/wot-executor.mjs` dispatches real WoT actions through `@node-wot/core`/`@node-wot/binding-http`. That dependency tree currently carries moderate/high transitive advisories in its HTTP server's router and query-string parsing (`decode-uri-component`, `find-my-way`); `npm audit` shows the details. No fix is available without downgrading to a much older, less-maintained `node-wot` release. `service/virtual-thermostat.mjs` binds to `127.0.0.1` only and uses `nosec` (no transport-level security), so it is a local development Thing, not something to expose to an untrusted network. Do not point `service/run-local-wot.mjs` at a `node-wot`-exposed Thing reachable from the internet without re-evaluating this.
