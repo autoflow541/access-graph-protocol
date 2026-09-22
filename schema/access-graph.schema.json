@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/agp/0.1/access-graph.schema.json",
+  "title": "Access Graph Protocol Object",
+  "type": "object",
+  "required": ["agp", "id", "role", "label", "state", "actions"],
+  "properties": {
+    "agp": { "const": "0.1" },
+    "id": { "type": "string", "minLength": 1 },
+    "role": { "type": "string", "minLength": 1 },
+    "role_name": { "type": "string" },
+    "label": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "state": { "type": "object", "additionalProperties": true },
+    "actions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/action" }
+    },
+    "inputs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "outputs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "relationships": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/relationship" }
+    },
+    "events": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/eventDefinition" }
+    },
+    "location": { "type": ["object", "string"] },
+    "metadata": { "type": "object", "additionalProperties": true },
+    "source": { "$ref": "#/$defs/source" }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "risk": {
+      "type": "string",
+      "enum": ["none", "low", "medium", "high", "critical"]
+    },
+    "parameter": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "enum": ["string", "number", "integer", "boolean"] },
+        "description": { "type": "string" },
+        "minimum": { "type": "number" },
+        "maximum": { "type": "number" },
+        "unit": { "type": "string" },
+        "enum": { "type": "array" },
+        "required": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "action": {
+      "type": "object",
+      "required": ["id", "risk"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "label": { "type": "string" },
+        "description": { "type": "string" },
+        "risk": { "$ref": "#/$defs/risk" },
+        "confirmation": { "type": "boolean", "default": false },
+        "category": { "type": "string" },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/parameter" }
+        },
+        "authorization": {
+          "type": "object",
+          "properties": {
+            "required": { "type": "boolean" },
+            "method": { "type": "string" }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "relationship": {
+      "type": "object",
+      "required": ["type", "target"],
+      "properties": {
+        "type": { "type": "string" },
+        "target": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "eventDefinition": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "string" },
+        "label": { "type": "string" },
+        "priority": { "enum": ["low", "normal", "high", "critical"] }
+      },
+      "additionalProperties": true
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "enum": ["native_agp", "platform_accessibility_api", "structured_api", "dom_metadata", "ai_inference"]
+        },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "adapter": { "type": "string" }
+      },
+      "additionalProperties": true
+    }
+  }
+}

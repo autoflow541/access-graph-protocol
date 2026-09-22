@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>AGP Website Demo</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <h1>AGP Website Demo</h1>
+    <p>This interface is rendered from an Access Graph plus an Access Profile.</p>
+
+    <section class="toolbar" aria-label="Demo profile settings">
+      <label><input id="largeText" type="checkbox" checked> Large controls</label>
+      <label><input id="speech" type="checkbox" checked> Speech output</label>
+      <label><input id="oneStep" type="checkbox"> One step at a time</label>
+    </section>
+
+    <section id="status" aria-live="polite"></section>
+    <section id="app" aria-label="Generated AGP interface"></section>
+
+    <details>
+      <summary>View current Access Graph</summary>
+      <pre id="graphJson"></pre>
+    </details>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/agp/0.1/access-profile.schema.json",
+  "title": "AGP Access Profile",
+  "type": "object",
+  "required": ["agp_profile"],
+  "properties": {
+    "agp_profile": { "const": "0.1" },
+    "input": { "$ref": "#/$defs/preferences" },
+    "output": { "$ref": "#/$defs/preferences" },
+    "language": {
+      "type": "object",
+      "properties": {
+        "complexity": { "enum": ["plain", "standard", "detailed"] },
+        "response_length": { "enum": ["short", "standard", "long"] },
+        "locale": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "interaction": {
+      "type": "object",
+      "properties": {
+        "confirmation_for": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        },
+        "extra_time": { "type": "boolean" },
+        "one_step_at_a_time": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "preferences": {
+      "type": "object",
+      "properties": {
+        "preferred": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        },
+        "avoid": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

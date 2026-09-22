@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AGP smart-device and SPECS simulator</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">AGP 0.1 interoperability demo</p>
+        <h1>Hall thermostat</h1>
+        <p>One WoT Thing Description, normalized into AGP and presented as an accessible SPECS-style control.</p>
+      </header>
+
+      <section class="layout" aria-label="Device controls">
+        <article class="device-card" aria-labelledby="device-title">
+          <p class="eyebrow">Simulated W3C Web of Things device</p>
+          <h2 id="device-title">Device state</h2>
+          <dl id="device-state"></dl>
+          <label>
+            Target temperature
+            <input id="target" type="range" min="16" max="28" value="21" step="1">
+            <output id="target-value" for="target">21°C</output>
+          </label>
+        </article>
+
+        <article class="specs-shell" aria-labelledby="specs-title">
+          <p class="eyebrow">SPECS view simulation</p>
+          <h2 id="specs-title"></h2>
+          <p id="summary"></p>
+          <div id="actions" class="actions"></div>
+          <div id="gate" class="gate" hidden>
+            <p id="gate-message" role="status" aria-live="polite"></p>
+            <div id="gate-actions" class="actions"></div>
+          </div>
+        </article>
+      </section>
+
+      <details>
+        <summary>Inspect normalized AGP object</summary>
+        <pre id="graph-json"></pre>
+      </details>
+      <p id="announcer" class="sr-only" aria-live="assertive"></p>
+    </main>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

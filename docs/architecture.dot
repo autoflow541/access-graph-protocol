@@ -1,0 +1,15 @@
+digraph AGP {
+  graph [rankdir=LR, bgcolor="transparent", pad="0.2", nodesep="0.45", ranksep="0.65"];
+  node [shape=box, style="rounded,filled", fontname="Arial", fontsize=12, fillcolor="white"];
+  edge [fontname="Arial", fontsize=10];
+
+  sources [label="Web • Apps • Devices • Robots • Environments"];
+  adapters [label="Adapters\nARIA • UIA • WoT • Matter • MCP"];
+  graphnode [label="Access Graph\nroles • state • actions • risk", penwidth=2];
+  profile [label="Access Profile\nfunctional preferences"];
+  engine [label="Access Engine\nAI or deterministic resolver", penwidth=2];
+  output [label="Speech • Visual • Keyboard • Switch • Haptic • Agent"];
+
+  sources -> adapters -> graphnode -> engine -> output;
+  profile -> engine;
+}

@@ -1,0 +1,7 @@
+{
+  "agp_profile": "0.1",
+  "input": { "preferred": ["voice", "hand_tracking"], "avoid": ["fine_motor", "timed_input"] },
+  "output": { "preferred": ["speech", "captions", "large_text", "high_contrast", "reduced_motion"] },
+  "language": { "complexity": "plain", "response_length": "short" },
+  "interaction": { "confirmation_for": ["device_control", "physical_safety"], "one_step_at_a_time": true }
+}

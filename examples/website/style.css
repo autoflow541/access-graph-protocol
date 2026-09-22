@@ -1,0 +1,11 @@
+:root { font-family: system-ui, sans-serif; color-scheme: light dark; }
+body { margin: 0; }
+main { max-width: 850px; margin: auto; padding: 2rem; }
+.toolbar { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1rem 0 2rem; }
+.card { border: 1px solid currentColor; border-radius: 12px; padding: 1.25rem; margin-block: 1rem; }
+.actions { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: 1rem; }
+button { font: inherit; padding: .65rem 1rem; }
+.large button { min-height: 64px; min-width: 180px; font-size: 1.2rem; }
+.large { font-size: 1.2rem; }
+.risk-high, .risk-critical { font-weight: 700; }
+pre { overflow: auto; padding: 1rem; background: Canvas; border: 1px solid currentColor; }
