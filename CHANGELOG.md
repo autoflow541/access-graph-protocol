@@ -1,5 +1,46 @@
 # Changelog
 
+## 0.1.16 — 2026-09-22
+
+Client capability negotiation — `docs/audit-2026-09-22.md` priority 4.
+
+- New `negotiateCapabilities(object, clientCapabilities)`
+  (`sdk/javascript/agp.js`): compares an object's declared
+  `inputs`/`outputs` against what the current client session reports it
+  can provide. Returns `canControl`/`canPerceive`, which channels are
+  supported vs missing, and a plain-language `conflicts[]` explanation
+  per gap — naming a working alternative when one exists ("can still be
+  controlled here via touch") and saying so plainly when none does ("No
+  alternative input is available in this session"), never inventing one.
+  Takes no `profile` argument at all, so a capability gap can never be
+  read as a diagnosis about the person rather than a fact about the
+  session — checked by an arity assertion in the test, not just a
+  comment. It only ever informs: nothing it returns disables or hides an
+  action, so "the user can always override" holds by construction.
+- New `tests/capability-negotiation-test.mjs`: full match, partial match
+  with a named alternative, full mismatch with no invented alternative
+  (mirrored for both inputs and outputs), the no-required-channels case,
+  and the omitted-`clientCapabilities` default (nothing assumed
+  available).
+- `examples/execution-client/` gained a "Client capability negotiation"
+  panel: four checkboxes (touch/voice input, visual/audio output) the
+  person can toggle to simulate a session missing that channel, computed
+  client-side — the one thing on that page not fetched from the service,
+  since only the client can know its own session's channels.
+  `service/run-local.mjs`'s demo thermostat now declares realistic
+  `x-agp-inputs: ["touch","voice"]` / `x-agp-outputs: ["visual","audio"]`
+  so there's something real to negotiate against. Verified live:
+  unchecking "Voice input" produces "Hall thermostat also accepts voice,
+  which this session doesn't report as available. It can still be
+  controlled here via network, touch."; unchecking "Visual output"
+  produces the mirrored output-side explanation; every action button,
+  including "Emergency shutdown," stays enabled throughout (confirmed via
+  the accessibility tree, not just visually).
+- Not done: object-level only, no per-action channels; the checkboxes are
+  a manual simulation, not real capability detection from an actual
+  device or browser. Docs updated to say so plainly:
+  `docs/audit-2026-09-22.md`, `NEXT.md`, `ROADMAP.md`'s M2 milestone.
+
 ## 0.1.15 — 2026-09-22
 
 Accessible task inspector — `docs/audit-2026-09-22.md` priority 3.

@@ -20,6 +20,13 @@ const thermostatTd = {
   description: "A simulated smart thermostat exposed through a WoT Thing Description.",
   security: "oauth2_sc",
   securityDefinitions: { oauth2_sc: { scheme: "oauth2" } },
+  // A real thermostat like this has a touchscreen and voice control, and
+  // reports back via its display and a chime -- declared here as an
+  // x-agp-inputs/outputs extension so ExecutionService.inspect() and the
+  // client's capability negotiation demo have something real to compare
+  // against (see negotiateCapabilities(), sdk/javascript/agp.js).
+  "x-agp-inputs": ["touch", "voice"],
+  "x-agp-outputs": ["visual", "audio"],
   properties: {
     temperature: { title: "Room temperature", type: "number", unit: "celsius", readOnly: true },
     targetTemperature: { title: "Target temperature", type: "number", unit: "celsius", minimum: 16, maximum: 28 }

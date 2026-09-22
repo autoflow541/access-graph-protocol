@@ -177,6 +177,26 @@ and the roadmap should say so rather than checking it off anyway.
       an unconfirmed claim, not a verified one); and, same as the
       browser reference client above, no real screen reader has been
       used against this page.
+- [ ] Client capability negotiation (`docs/audit-2026-09-22.md` item 4):
+      `negotiateCapabilities()` (`sdk/javascript/agp.js`) compares an
+      object's declared `inputs`/`outputs` against what the current
+      client session reports, explains any gap in plain language, names
+      a working alternative when one exists, and never blocks an action
+      on the result. It takes no `profile` argument — a capability gap
+      is a fact about the session, never a diagnosis about the person —
+      and that guarantee is checked by an arity assertion in the test,
+      not just stated in a comment. Tested
+      (`tests/capability-negotiation-test.mjs`: full/partial/no match on
+      both inputs and outputs, no invented alternatives, omitted-input
+      defaults). Rendered live in `examples/execution-client/` as
+      togglable checkboxes against a demo thermostat now declaring real
+      `touch`/`voice`/`visual`/`audio` channels; verified live that
+      unchecking a channel produces the correct named-alternative or
+      no-alternative explanation, and that every action button (Emergency
+      shutdown included) stays enabled throughout. Unchecked because this
+      is object-level only (no per-action channels yet) and the
+      checkboxes are a manual simulation, not real capability detection
+      from an actual device or browser.
 
 **M3 — Real device connected, SPECS client compiled and integrated**
 - [ ] One real lamp switched on/off end-to-end through the execution

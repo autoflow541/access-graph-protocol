@@ -108,6 +108,58 @@ export function renderControls(object, profile = {}) {
   };
 }
 
+// Compares what an object needs to be controlled and perceived
+// (object.inputs / object.outputs) against what the CURRENT CLIENT reports
+// it can provide -- never against the Access Profile, and never against
+// any assumption about the person. A client that doesn't report "voice" as
+// available might just be a browser tab with no microphone wired up, not a
+// person who cannot speak; treating the two the same would turn a
+// technical capability gap into a diagnosis about the user, which AGP must
+// never do (docs/audit-2026-09-22.md item 4, "never infer a diagnosis from
+// a preference"). This function only ever informs -- it has no notion of
+// blocking, so the caller can always let the person proceed regardless of
+// a reported gap (the override this exists to preserve).
+export function negotiateCapabilities(object, clientCapabilities = {}) {
+  const clientInputs = new Set(clientCapabilities.inputs ?? []);
+  const clientOutputs = new Set(clientCapabilities.outputs ?? []);
+  const requiredInputs = object.inputs ?? [];
+  const requiredOutputs = object.outputs ?? [];
+
+  const supportedInputs = requiredInputs.filter((channel) => clientInputs.has(channel));
+  const missingInputs = requiredInputs.filter((channel) => !clientInputs.has(channel));
+  const supportedOutputs = requiredOutputs.filter((channel) => clientOutputs.has(channel));
+  const missingOutputs = requiredOutputs.filter((channel) => !clientOutputs.has(channel));
+
+  const canControl = requiredInputs.length === 0 || supportedInputs.length > 0;
+  const canPerceive = requiredOutputs.length === 0 || supportedOutputs.length > 0;
+
+  const conflicts = [];
+  if (missingInputs.length > 0) {
+    conflicts.push({
+      channel: "input",
+      missing: missingInputs,
+      explanation: canControl
+        ? `${object.label} also accepts ${joinChannels(missingInputs)}, which this session doesn't report as available. It can still be controlled here via ${joinChannels(supportedInputs)}.`
+        : `${object.label} can only be controlled via ${joinChannels(requiredInputs)}, and this session doesn't report any of those as available. No alternative input is available in this session.`
+    });
+  }
+  if (missingOutputs.length > 0) {
+    conflicts.push({
+      channel: "output",
+      missing: missingOutputs,
+      explanation: canPerceive
+        ? `${object.label} also reports state via ${joinChannels(missingOutputs)}, which this session doesn't report as available to perceive. State can still be read here via ${joinChannels(supportedOutputs)}.`
+        : `${object.label} only reports state via ${joinChannels(requiredOutputs)}, and this session doesn't report any of those as available to perceive. No alternative output is available in this session.`
+    });
+  }
+
+  return { canControl, canPerceive, supportedInputs, missingInputs, supportedOutputs, missingOutputs, conflicts };
+}
+
+function joinChannels(values) {
+  return values.join(", ");
+}
+
 export function humanize(value) {
   return String(value)
     .replaceAll("_", " ")

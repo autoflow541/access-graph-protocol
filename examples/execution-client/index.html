@@ -46,6 +46,24 @@
         </article>
       </section>
 
+      <section class="capabilities" aria-labelledby="capabilities-title">
+        <p class="eyebrow">Client capability negotiation</p>
+        <h2 id="capabilities-title">What this session reports it can do</h2>
+        <p>
+          This is a claim about this browser session, not about you &mdash; unchecking a box simulates a
+          client without that input or output. Nothing here ever blocks an action; it only explains what
+          the device needs and what stays available anyway.
+        </p>
+        <fieldset class="capability-toggles">
+          <legend>Available in this session</legend>
+          <label><input type="checkbox" id="cap-touch" checked> Touch input</label>
+          <label><input type="checkbox" id="cap-voice" checked> Voice input</label>
+          <label><input type="checkbox" id="cap-visual" checked> Visual output</label>
+          <label><input type="checkbox" id="cap-audio" checked> Audio output</label>
+        </fieldset>
+        <div id="capability-result" class="capability-result" role="status" aria-live="polite"></div>
+      </section>
+
       <section class="inspector" aria-labelledby="inspector-title">
         <p class="eyebrow">Accessible task inspector</p>
         <h2 id="inspector-title">Every action on this device</h2>

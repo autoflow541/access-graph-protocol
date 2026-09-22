@@ -47,8 +47,8 @@ sense:
   swap-in point now, but nobody has built one.
 - **No real device connected.** M3's `node-wot` integration
   (`docs/adr-0001-wot-reuse.md`) is still ahead of this.
-- **No capability negotiation or scenario runner** —
-  `docs/audit-2026-09-22.md`'s next priorities after the task inspector.
+- **No scenario runner** —
+  `docs/audit-2026-09-22.md`'s next priority after capability negotiation.
 
 ## Accessible task inspector: started, not finished
 
@@ -75,11 +75,26 @@ a confirmed one. No real screen reader has been used against this or any
 other browser example in this repo. See `docs/audit-2026-09-22.md` item
 3 and `ROADMAP.md`'s M2 milestone.
 
+## Client capability negotiation: started, not finished
+
+`negotiateCapabilities()` (`sdk/javascript/agp.js`) compares an object's
+declared `inputs`/`outputs` against what the current client session
+reports, explains any gap in plain language, names a working alternative
+when one exists, and never blocks — it takes no `profile` argument, so a
+capability gap can never be read as a diagnosis about the person. Tested
+(`tests/capability-negotiation-test.mjs`) and rendered live in
+`examples/execution-client/` as togglable checkboxes against a demo
+thermostat now declaring real `touch`/`voice`/`visual`/`audio` channels.
+Not done: object-level only (no per-action channels), and the checkboxes
+are a manual simulation — nothing here reads a real device's or browser's
+actual capabilities. See `docs/audit-2026-09-22.md` item 4.
+
 ## Still open
 
 WoT schema coverage, cross-discovery stable IDs, Lens Studio/hardware
 verification, real screen-reader verification of every browser example,
-capability negotiation, and scenario runner. See
+per-action capability channels, real capability detection (vs. the
+current manual-toggle simulation), and a scenario runner. See
 `docs/audit-2026-09-22.md` for acceptance criteria and feature
 priorities. ("UI versus executor confirmation consistency" from the
 original audit finding was fixed — see CHANGELOG.md's 0.1.11 entry.)

@@ -4,6 +4,13 @@
 // guarantee; this page's job is only to make each of those outcomes
 // visible and distinct, not to invent new ones.
 
+// Capability negotiation (negotiateCapabilities) is the one piece of this
+// page computed locally rather than fetched: only the client itself can
+// know what THIS session's input/output channels actually are, so it has
+// no business being a server call — see sdk/javascript/agp.js's comment
+// on why this must stay separate from anything profile-shaped.
+import { negotiateCapabilities } from "../../sdk/javascript/agp.js";
+
 const SERVICE_URL = window.AGP_SERVICE_URL || "http://localhost:8787";
 const TOKEN = window.AGP_SERVICE_TOKEN || "dev-token"; // matches service/run-local.mjs's default; dev-only.
 const DEVICE_ID = "hall-thermostat";
@@ -20,6 +27,11 @@ const gateActions = document.querySelector("#gate-actions");
 const outcomeEl = document.querySelector("#outcome");
 const graphJson = document.querySelector("#graph-json");
 const inspectorList = document.querySelector("#inspector-list");
+const capTouch = document.querySelector("#cap-touch");
+const capVoice = document.querySelector("#cap-voice");
+const capVisual = document.querySelector("#cap-visual");
+const capAudio = document.querySelector("#cap-audio");
+const capabilityResult = document.querySelector("#capability-result");
 const announcer = document.querySelector("#announcer");
 
 const RISK_ORDER = ["none", "low", "medium", "high", "critical"];
@@ -114,6 +126,40 @@ function render() {
     }
     actionsEl.append(actionButton(action));
   }
+
+  renderCapabilities();
+}
+
+function currentClientCapabilities() {
+  return {
+    // "network" isn't a checkbox: any browser tab that reached the service
+    // at all trivially has it, so surfacing it as a togglable gap would be
+    // noise, not a real capability question.
+    inputs: ["network", ...(capTouch.checked ? ["touch"] : []), ...(capVoice.checked ? ["voice"] : [])],
+    outputs: [...(capVisual.checked ? ["visual"] : []), ...(capAudio.checked ? ["audio"] : [])]
+  };
+}
+
+function renderCapabilities() {
+  if (!currentObject) return;
+  const result = negotiateCapabilities(currentObject, currentClientCapabilities());
+  if (result.conflicts.length === 0) {
+    capabilityResult.textContent = "This session reports everything this device needs to be controlled and perceived.";
+    capabilityResult.className = "capability-result ok";
+    return;
+  }
+  capabilityResult.replaceChildren(
+    ...result.conflicts.map((conflict) => {
+      const p = document.createElement("p");
+      p.textContent = conflict.explanation;
+      return p;
+    })
+  );
+  capabilityResult.className = `capability-result ${result.canControl && result.canPerceive ? "warn" : "error"}`;
+}
+
+for (const checkbox of [capTouch, capVoice, capVisual, capAudio]) {
+  checkbox.addEventListener("change", renderCapabilities);
 }
 
 function actionButton(action) {
