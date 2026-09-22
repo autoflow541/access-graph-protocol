@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.1.7 — 2026-09-22
+
+Documentation-only release: researches the two device/execution-layer
+systems `ROADMAP.md` already named as "to evaluate" (Matter, Home
+Assistant) but had never actually looked into, and extends
+`docs/adr-0001-wot-reuse.md` and `docs/prior-art-and-positioning.md` with
+the findings. No code changed; `npm test` is unaffected.
+
+- **Matter**: its Node → Endpoint → Cluster → {attributes, commands,
+  events} data model and fabric-scoped ACL (cumulative View/Operate/
+  Manage/Administer privileges per command) map onto AGP's shape and
+  authorization concept the same way WoT's TD does — and, like WoT, has
+  no risk or confirmation concept at all. ADR-0001 extended (item 6) so a
+  future Matter adapter starts from this decision instead of re-deriving
+  it.
+- **Home Assistant**: its WebSocket `call_service` API
+  (`{domain, service, service_data, target}`) has no risk classification
+  or destructive-action warning of any kind — confirmed by reading the
+  actual API docs, not assumed. A future Home Assistant execution backend
+  needs its own reviewed `domain`/`service` → category mapping; ADR-0001
+  (item 5) and the `ROADMAP.md` M2 milestone updated accordingly.
+- Strengthens `docs/prior-art-and-positioning.md`'s positioning statement:
+  three independent, real, shipping systems (WoT, Matter, Home Assistant)
+  all have authorization but no accessibility-oriented risk/confirmation
+  layer — evidence that gap is real and consistently unaddressed, not
+  something this project imagined or is duplicating.
+- `ROADMAP.md`'s Matter and Home Assistant lines now point at the
+  decisions already made instead of reading as unresearched placeholders.
+
 ## 0.1.6 — 2026-09-22
 
 Documentation-only release: extends the prior-art research and feeds its

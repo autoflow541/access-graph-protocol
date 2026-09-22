@@ -90,6 +90,49 @@ where a risk/confirmation/authorization model earns its cost, and where
 AGP's `adapters/specs/index.js` proposal lifecycle
 (`docs/adr-0001-wot-reuse.md`) has no AccessKit equivalent to defer to.
 
+## Matter (Connectivity Standards Alliance)
+
+Matter's data model — Node → Endpoint → Cluster → {attributes, commands,
+events}, using Zigbee Cluster Library-derived clusters — maps onto AGP's
+object/state/actions/events shape at least as cleanly as WoT's TD does.
+Matter also has a real, enforced authorization model: a fabric-scoped
+access control list with cumulative privilege levels (View < Operate <
+Manage < Administer) required per command invocation.
+
+What Matter's ACL does **not** have is any risk or confirmation concept —
+it answers "is this controller allowed to invoke this command on this
+fabric," never "should a person be shown a confirmation step before this
+specific, possibly dangerous, invocation." A controller with `Operate`
+privilege can invoke a lock's `unlock` command exactly as freely as a
+light's `on` command; Matter draws no distinction between them.
+
+**What this means for AGP:** identical reasoning to WoT
+(`docs/adr-0001-wot-reuse.md`) applies: a future Matter adapter reads
+cluster/attribute/command structure and ACL privilege requirements from
+Matter, and supplies risk/confirmation/category from AGP's own reviewed
+classification — Matter has nothing to read for that part. This is
+unbuilt (`ROADMAP.md`, "Matter capability mapping experiment"), not a
+completed comparison; it is included here so that when it is built, it
+starts from this decision instead of re-deriving it.
+
+## Home Assistant
+
+Home Assistant's WebSocket `call_service` API
+(`{domain, service, service_data, target}`, e.g. `light.turn_on`) is a
+real, widely-deployed device-bridge with **no risk classification or
+destructive-action warning of any kind** — `light.turn_on` and a lock's
+`unlock` service are indistinguishable to the protocol itself.
+
+**What this means for AGP:** Home Assistant is the clearest of the three
+device-layer precedents (WoT, Matter, Home Assistant) that AGP's
+risk/confirmation layer is solving a gap none of them fill, not
+duplicating one of them — see `docs/adr-0001-wot-reuse.md`, item 5. A
+future Home Assistant execution backend needs its own small, reviewed
+`domain`/`service` → AGP category mapping; it cannot infer risk from Home
+Assistant's own data the way `adapters/wot/index.js` can (imperfectly, see
+Finding G in `docs/capability-matrix.md`) read `x-agp-risk` from a Thing
+Description, because Home Assistant carries no equivalent signal at all.
+
 ## WAI-Adapt
 
 WAI-Adapt is W3C work on semantic information that enables content
@@ -222,3 +265,17 @@ patterns across genuinely different client technologies (a browser and
 Spectacles glasses, so far). The JSON graph by itself is not the product;
 the validated execution model plus the accessible presentation adapters
 around it is.
+
+Every device/action-layer precedent looked at so far — WoT's security
+schemes, Matter's fabric ACL, Home Assistant's service calls — has a real
+authorization model but no risk-tiered, accessibility-aware confirmation
+layer, and every action-invocation precedent looked at so far — App
+Intents' `requestConfirmation`, MCP's tool annotations — has a
+confirmation or trust mechanism with a documented gap (a modality that can
+bypass it, or an annotation with no enforced trust boundary). That is
+independent evidence for the specific, narrow bet this project is making:
+not that device description or UI rendering need reinventing (AccessKit,
+A2UI, WoT, and Matter already do those well), but that the
+risk/confirmation/Access-Profile layer between them and a person is
+consistently missing, and worth building once rather than inside every
+adapter separately.

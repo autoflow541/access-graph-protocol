@@ -21,7 +21,7 @@ AGP is currently an experimental interoperability prototype. The roadmap priorit
 - [x] SPECS semantic view and safety bridge
 - [x] Simulated WoT smart-device/SPECS interaction demo
 - [ ] Lens Studio (SPECS 27) project — source complete in `examples/specs/lens-project/` (real TypeScript against SIK/Spectacles UI Kit/ASR/TTS, world-locked controls, hand + exact-voice input, captions/speech/large-text/high-contrast/reduced-motion/one-step, confirmation and authorization kept as separate gates); not yet device-tested (see "0.4 — Real-world pilots") and has no slider/dial input control yet for parameterized actions
-- [ ] Matter capability mapping experiment
+- [ ] Matter capability mapping experiment — data-model and trust-boundary decision already made in `docs/adr-0001-wot-reuse.md` (item 6) and researched in `docs/prior-art-and-positioning.md`; not yet implemented as an adapter
 - [ ] MCP tool projection for AGP actions
 - [ ] Event subscription model
 - [ ] Capability discovery document at `/.well-known/agp`
@@ -111,7 +111,12 @@ and the roadmap should say so rather than checking it off anyway.
 - [ ] One execution integration chosen and implemented (`node-wot` for
       WoT-sourced actions, evaluated per `docs/adr-0001-wot-reuse.md`).
       Home Assistant's WebSocket API evaluated as a second, later backend
-      for real-device bridging — not built in this milestone.
+      for real-device bridging — not built in this milestone. Home
+      Assistant's `call_service` API has no risk classification of its
+      own (`docs/adr-0001-wot-reuse.md`, item 5), so whichever backend is
+      built second needs its own reviewed `domain`/`service` → category
+      mapping, not an assumption that risk can be read from Home
+      Assistant the way it's (imperfectly) read from a WoT TD.
 - [ ] The action lifecycle (proposal → validation → confirmation →
       server-side authorization → dispatch → pending →
       succeeded/failed/cancelled/unknown) exists server-side, with a

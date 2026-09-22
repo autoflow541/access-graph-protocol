@@ -1,4 +1,4 @@
-# ADR-0001: AGP is an accessibility projection of WoT, not a competing device protocol
+# ADR-0001: AGP is an accessibility projection of the underlying protocol (WoT, Matter, Home Assistant), not a competing device protocol
 
 ## Status
 
@@ -61,7 +61,34 @@ Concretely:
    workflow in `ROADMAP.md`, evaluated after `node-wot`, not instead of
    it — Home Assistant is a device-bridge product with its own entity
    model, not a description-format alternative to WoT, so it does not
-   change this ADR's decision.
+   change this ADR's decision. Its `call_service` message
+   (`{domain, service, service_data, target}`) has **no risk
+   classification or destructive-action warning of any kind** — Home
+   Assistant treats `light.turn_on` and a lock's `unlock` service
+   identically at the protocol level. A future Home Assistant execution
+   backend therefore cannot read risk/confirmation/category from Home
+   Assistant the way `adapters/wot/index.js` reads `x-agp-risk` from a
+   TD — there is nothing there to read. It would need its own small,
+   reviewed mapping from `domain`/`service` to AGP category (subject to
+   the same category-mislabeling caution as Finding G,
+   `docs/capability-matrix.md`: this mapping must be adapter-side and
+   reviewed, not inferred from the service name at runtime).
+6. Matter's data model (Node → Endpoint → Cluster → {attributes, commands,
+   events}, using Zigbee Cluster Library-derived clusters) maps onto AGP's
+   object/state/actions/events shape at least as cleanly as WoT's does,
+   and Matter's fabric-scoped ACL (cumulative View < Operate < Manage <
+   Administer privileges, required per command) is a real, enforced
+   authorization model this ADR's reasoning applies to identically:
+   `authorization.required` should be read from a cluster/command's
+   required ACL privilege, not reinvented. Matter's ACL, like WoT's
+   security schemes and Home Assistant's service calls, has **no
+   risk/confirmation concept** — it answers "is this controller allowed to
+   invoke this command on this fabric," never "should a person be shown a
+   confirmation step before this specific invocation." A future Matter
+   adapter is unbuilt (`ROADMAP.md`, "Matter capability mapping
+   experiment") but would follow this ADR's decision exactly as the WoT
+   adapter does: read cluster/attribute/command/ACL from Matter, supply
+   risk/confirmation/category from AGP's own (reviewed) classification.
 
 ## Consequences
 
@@ -82,6 +109,15 @@ Concretely:
   is a case-by-case adapter decision, made the same way `adapters/aria/`
   was: read the native format, project only the accessibility-relevant
   parts into AGP.
+- WoT's security schemes, Matter's fabric ACL, and Home Assistant's
+  service-call model all confirm the same gap independently: none of the
+  three real, shipping systems AGP has looked at has any concept of
+  risk-tiered, accessibility-aware confirmation before an action runs.
+  That is evidence AGP's actual value-add (the risk/confirmation/
+  Access-Profile layer, not the device description) is filling a real,
+  consistently-missing gap across this ecosystem rather than duplicating
+  work any of them already does — see the positioning statement in
+  `docs/prior-art-and-positioning.md`.
 
 ## Alternatives considered
 
