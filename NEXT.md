@@ -27,13 +27,16 @@ HTTP. Done:
 
 A real browser client now exists too: `examples/execution-client/` talks
 to `service/` over actual HTTP (CORS added to `http-server.js` for this).
-Manually verified live: connect → propose → confirm → authorize → execute
-actually moved `targetTemperature` and advanced the state version;
-stopping the service mid-session showed a distinct "disconnected" state
-instead of crashing or showing stale data as current. Not manually
-clicked through in a browser (only covered by the automated suite):
-authorization denial, dispatch-timeout ("unknown"), and cancel-before-
-dispatch. No actual screen reader was used to verify it.
+Every gate/outcome path was clicked through live over real HTTP, not just
+covered by the automated suite: success, authorization denial,
+disconnection, cancel-before-dispatch, and dispatch timeout. The timeout
+check turned up a genuinely useful unplanned result: the server-side
+dispatch was made to run past `dispatchTimeoutMs`, the client correctly
+reported "unknown, don't assume it failed," and the dispatch then
+actually succeeded seconds later in the background — the next action
+attempt correctly hit `STALE_STATE` and auto-recovered. That's the real
+race this design exists to handle, observed actually happening. No actual
+screen reader was used to verify the page.
 
 Not done — this is the actual next work, not "still open" in the vague
 sense:

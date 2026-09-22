@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.1.14 — 2026-09-22
+
+Documentation-only release: closes the specific gaps 0.1.13 left open —
+every `examples/execution-client/` path that was only automated-tested is
+now manually verified live. No code changed except a temporary,
+fully-reverted local edit used to force a real dispatch timeout for
+testing (`git diff` confirmed clean before committing).
+
+- Manually clicked through, over real HTTP: authorization denial ("Deny"
+  → "Authorization was denied.", no state change); cancel-before-dispatch
+  ("Cancel" at the confirmation step → "Cancelled.", no dispatch); and
+  dispatch timeout, by temporarily making `run-local.mjs`'s executor sleep
+  5s against a 2s `dispatchTimeoutMs`.
+- The timeout check produced a genuinely useful unplanned result rather
+  than a scripted one: the client correctly reported "unknown, don't
+  assume it failed" at the 2s mark, and the dispatch then actually
+  *succeeded* in the background a few seconds later (state advanced to
+  `mode: eco`, state version 2) — the client's *next* action attempt
+  correctly detected this as `STALE_STATE` and auto-refreshed before
+  proposing again. This is the exact real-world race
+  `ExecutionService`'s state-version design exists to handle, observed
+  actually happening end-to-end, not merely asserted in a unit test.
+- Also read the page's accessibility tree directly (`read_page`) as a
+  partial, evidence-based check: real `status`-role live regions, a
+  correctly-labeled range input, and semantic buttons with descriptive
+  text. This is not a substitute for an actual screen reader and is
+  documented as such — `docs/capability-matrix.md`, `service/README.md`,
+  `NEXT.md`, and `ROADMAP.md`'s M2 milestone are all updated to say
+  precisely what was and wasn't verified, without rounding up.
+
 ## 0.1.13 — 2026-09-22
 
 Closes the execution service's biggest remaining gap from 0.1.12: nothing

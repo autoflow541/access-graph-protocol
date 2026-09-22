@@ -107,20 +107,25 @@ used across this repo:
   simulated, same as `examples/smart-device/app.js`. Connecting one real
   lamp through `node-wot` (per `docs/adr-0001-wot-reuse.md`) is the next
   step ROADMAP.md's M3 milestone calls for, not something this does.
-- **A real browser client now exists** (`examples/execution-client/`) and
-  was manually verified live — describe → propose → confirm → authorize
-  → execute over real HTTP actually moved `targetTemperature` and
-  advanced the state version, and stopping the service mid-session showed
-  a distinct, non-crashing "disconnected" state rather than stale data.
-  What was **not** manually clicked through in a browser, only covered by
-  the automated suite (`tests/execution-service-test.mjs`): the
-  authorization-denial path, the dispatch-timeout ("unknown" outcome)
-  path, and cancel-before-dispatch. No actual screen reader was used to
-  verify the page — it uses native buttons/range inputs and `aria-live`
-  regions, which is a reasonable-effort attempt, not a verified one.
-  `examples/smart-device/` (the in-process simulation) was deliberately
-  left as-is rather than rewired, so both a pure client-side demo and a
-  real-network one exist side by side.
+- **A real browser client now exists** (`examples/execution-client/`),
+  and every gate/outcome path was manually verified live over real HTTP,
+  not just by the automated suite: success (`targetTemperature` actually
+  moved, state version advanced), authorization denial, disconnection
+  (stopping the service mid-session showed a distinct, non-crashing
+  state rather than stale data), cancel-before-dispatch, and dispatch
+  timeout. The timeout check produced a genuinely useful, unplanned
+  result: the server-side dispatch was made to run past
+  `dispatchTimeoutMs`, so the client correctly reported "unknown, don't
+  assume it failed" — and the dispatch then actually *succeeded* a few
+  seconds later in the background, which the next action attempt
+  correctly caught as `STALE_STATE` and auto-recovered from. That's the
+  exact real-world race this design exists to handle, observed actually
+  happening, not merely asserted in a test. No actual screen reader was
+  used to verify the page — it uses native buttons/range inputs and
+  `aria-live` regions, which is a reasonable-effort attempt, not a
+  verified one. `examples/smart-device/` (the in-process simulation) was
+  deliberately left as-is rather than rewired, so both a pure client-side
+  demo and a real-network one exist side by side.
 - **No accessible task inspector, capability negotiation, or scenario
   runner.** Those are `docs/audit-2026-09-22.md`'s next priorities after
   this one, not built here.
