@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.1.8 — 2026-09-22
+
+Closes the previously-flagged Lens Studio gap: a parameterized action
+(e.g. the thermostat's `write_targettemperature`) was shown as read-only
+state with no way to actually set it in the Lens, unlike the browser demo.
+
+- **Added** `examples/specs/lens-project/Assets/Scripts/AgpParameterSlider.ts`,
+  a numeric-parameter slider built on `SpectaclesUIKit.Slider` (verified
+  against Snap's published scripting API — not the deprecated
+  `SpectaclesInteractionKit.Slider`). `Slider.currentValue` is normalized
+  to [0, 1] with no native min/max, so this class does the linear mapping
+  to and from the parameter's actual `minimum`/`maximum` itself, and only
+  proposes an action (`selectAction`) once dragging finishes
+  (`Slider.onFinished`), not on every drag tick — mirroring the browser
+  demo's range input, which requests on `"change"`, not `"input"`.
+- `AgpSpecsPanelView.ts` now renders a slider for any action whose sole
+  parameter is a single bounded numeric `value` (verified against real
+  `adapters/wot/index.js` output: `write_targettemperature` → slider,
+  `write_settings`-style object parameters → still read-only, no crash).
+  Deliberately narrow scope: a multi-property object, an array, or an
+  enum-only parameter is still shown as read-only state, not a
+  half-built control.
+- `examples/specs/lens-project/SETUP.md` documents the new prefab and
+  import path, and the known gaps section now describes the slider's
+  actual scope (single bounded numeric parameter only; no voice-driven
+  equivalent yet) instead of "not built."
+- `docs/capability-matrix.md` and `ROADMAP.md` updated accordingly.
+
+Like the rest of `examples/specs/lens-project/`, this is source verified
+against Snap's documented API and against real adapter output — not
+verified running in Lens Studio or on Spectacles hardware.
+
 ## 0.1.7 — 2026-09-22
 
 Documentation-only release: researches the two device/execution-layer

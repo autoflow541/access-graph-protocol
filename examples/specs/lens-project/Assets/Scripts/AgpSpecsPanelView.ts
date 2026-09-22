@@ -1,5 +1,6 @@
 import { Frame } from "SpectaclesUIKit.lspkg/Scripts/Components/Frame/Frame";
 import { AgpActionButton } from "./AgpActionButton";
+import { AgpParameterSlider } from "./AgpParameterSlider";
 import { AgpSpecsSessionController, AgpSpecsSurface, SpecsActionState } from "./AgpSpecsSessionController";
 
 // Text.size is an em-square height (Lens Studio default is 48, range 2-800).
@@ -7,18 +8,24 @@ const STANDARD_TEXT_SIZE = 48;
 const LARGE_TEXT_SIZE = 72;
 
 /**
- * World-locked accessible control panel. One AGP action = one button,
- * built from adapters/specs/index.js `toSpecsView(...)` — the same view
- * model the browser demo (examples/smart-device/) renders as HTML. This
- * class only applies presentation flags the adapter already computed
- * (largeControls / highContrast / reduceMotion / oneStepAtATime); it makes
- * no accessibility decisions of its own.
+ * World-locked accessible control panel. One AGP action = one control
+ * (button or slider), built from adapters/specs/index.js
+ * `toSpecsView(...)` — the same view model the browser demo
+ * (examples/smart-device/) renders as HTML. This class only applies
+ * presentation flags the adapter already computed (largeControls /
+ * highContrast / reduceMotion / oneStepAtATime); it makes no accessibility
+ * decisions of its own.
  *
- * Only zero-parameter actions are shown as buttons (e.g. eco mode, emergency
- * shutdown). An action that needs an input value (e.g. the thermostat's
- * write_targettemperature) is shown as read-only state, not as a button —
- * this Lens does not yet ship a slider/dial input surface for it. See
- * ROADMAP.md, "Lens Studio SPECS project" follow-ups.
+ * A zero-parameter action (e.g. eco mode, emergency shutdown) renders as a
+ * button. An action whose only parameter is a single numeric `value` with
+ * both `minimum` and `maximum` declared (the shape a WoT property write
+ * like write_targettemperature produces — adapters/wot/index.js
+ * schemaParameter) renders as a slider (AgpParameterSlider), matching the
+ * browser demo's range-input control. Any other parameterized shape (an
+ * object with multiple properties, an array, an enum-only string, …) is
+ * still shown as read-only state rather than a half-built input control —
+ * this narrower slider support does not claim to handle every possible
+ * parameter shape.
  */
 @component
 export class AgpSpecsPanelView extends BaseScriptComponent implements AgpSpecsSurface {
@@ -44,6 +51,10 @@ export class AgpSpecsPanelView extends BaseScriptComponent implements AgpSpecsSu
   actionButtonPrefab: ObjectPrefab;
 
   @input
+  @hint("Prefab carrying an AgpParameterSlider component (SpectaclesUIKit Slider + a Text value label), for a single numeric bounded parameter.")
+  parameterSliderPrefab: ObjectPrefab;
+
+  @input
   statusBanner: Text;
 
   @input
@@ -65,11 +76,14 @@ export class AgpSpecsPanelView extends BaseScriptComponent implements AgpSpecsSu
     this.summaryText.text = view.summary;
     this.applyPresentation(view.presentation);
 
-    const rawActions = this.controller.currentObject()?.actions ?? [];
-    const parameterized = new Set(rawActions.filter((action: any) => action.parameters).map((action: any) => action.id));
-    const selectable = view.actions.filter((action: any) => !action.id.startsWith("read_") && !parameterized.has(action.id));
-    const visible = view.presentation.layout === "focused" ? this.oneAtATime(selectable) : selectable;
-    this.renderActionButtons(visible);
+    const rawById = new Map((this.controller.currentObject()?.actions ?? []).map((action: any) => [action.id, action]));
+    const items = view.actions
+      .filter((action: any) => !action.id.startsWith("read_"))
+      .map((action: any) => ({ action, raw: rawById.get(action.id) }))
+      .filter(({ raw }: any) => !raw?.parameters || isSliderParameter(raw.parameters));
+
+    const visible = view.presentation.layout === "focused" ? this.oneAtATime(items) : items;
+    this.renderItems(visible, view.state);
   }
 
   showPrompt(message: string, status: SpecsActionState): void {
@@ -97,17 +111,34 @@ export class AgpSpecsPanelView extends BaseScriptComponent implements AgpSpecsSu
     this.showPanel(this.controller.currentView());
   }
 
-  private renderActionButtons(actions: any[]): void {
-    this.buttons.forEach((button) => button.destroy());
+  private renderItems(items: { action: any; raw: any }[], state: { key: string; label: string; value: unknown }[]): void {
+    this.buttons.forEach((instance) => instance.destroy());
     this.buttons = [];
 
-    for (const action of actions) {
-      const instance = this.actionButtonPrefab.instantiate(this.actionListContainer);
-      const button = instance.getComponent(AgpActionButton.getTypeName()) as AgpActionButton;
-      const labelText = action.confirmation ? `${action.label} · confirm` : action.label;
-      button.configure(action.id, labelText, () => this.controller.selectAction(action.id));
+    for (const { action, raw } of items) {
+      const instance = raw?.parameters ? this.renderSlider(action, raw, state) : this.renderButton(action);
       this.buttons.push(instance);
     }
+  }
+
+  private renderButton(action: any): SceneObject {
+    const instance = this.actionButtonPrefab.instantiate(this.actionListContainer);
+    const button = instance.getComponent(AgpActionButton.getTypeName()) as AgpActionButton;
+    const labelText = action.confirmation ? `${action.label} · confirm` : action.label;
+    button.configure(action.id, labelText, () => this.controller.selectAction(action.id));
+    return instance;
+  }
+
+  private renderSlider(action: any, raw: any, state: { key: string; label: string; value: unknown }[]): SceneObject {
+    const instance = this.parameterSliderPrefab.instantiate(this.actionListContainer);
+    const slider = instance.getComponent(AgpParameterSlider.getTypeName()) as AgpParameterSlider;
+    const valueParam = raw.parameters.value;
+    const stateEntry = state.find((entry) => entry.key === raw.metadata?.wot_name);
+    const initialValue = typeof stateEntry?.value === "number" ? stateEntry.value : valueParam.minimum;
+    slider.configure(valueParam.minimum, valueParam.maximum, initialValue, undefined, (committed) => {
+      this.controller.selectAction(action.id, { value: committed });
+    });
+    return instance;
   }
 
   private applyPresentation(presentation: any): void {
@@ -122,4 +153,16 @@ export class AgpSpecsPanelView extends BaseScriptComponent implements AgpSpecsSu
     this.frame.autoShowHide = !presentation.reduceMotion;
     if (presentation.reduceMotion) this.frame.showVisual();
   }
+}
+
+// Narrow, deliberate scope: only a single "value" parameter of type
+// number/integer with both minimum and maximum declared gets a slider.
+// Anything else (an object with multiple properties, an array, an
+// enum-only string, a missing bound) is left as read-only state rather
+// than guessing at a control for a shape this class doesn't handle.
+function isSliderParameter(parameters: Record<string, any>): boolean {
+  const names = Object.keys(parameters);
+  if (names.length !== 1 || names[0] !== "value") return false;
+  const value = parameters.value;
+  return (value.type === "number" || value.type === "integer") && value.minimum !== undefined && value.maximum !== undefined;
 }

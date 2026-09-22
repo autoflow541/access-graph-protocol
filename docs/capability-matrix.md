@@ -38,7 +38,7 @@ current (0.1.5) state.
 | Large text / high contrast / reduced motion | No | No | No | `AgpSpecsPanelView.ts` applies presentation flags already computed by `toSpecsView` — source-complete, **not tested on hardware** |
 | One-step interaction | No | No | Yes (single gate panel) | Yes — `layout: "focused"` shows one action at a time |
 | Confirmation / authorization as separate steps | N/A | N/A | Yes | Yes, plus (this release) confirmation bound to immutable parameters |
-| Parameterized actions (e.g. set a numeric value) | N/A | N/A | Yes (`write_targettemperature` with a slider) | **Not yet built** — panel filters out any action with `parameters` rather than half-implementing input for it |
+| Parameterized actions (e.g. set a numeric value) | N/A | N/A | Yes (`write_targettemperature` with a range input) | `AgpParameterSlider.ts` on `SpectaclesUIKit.Slider` — source-complete, **not tested on hardware**. Narrow scope: only a single bounded numeric `value` parameter (`write_targettemperature`'s shape); any other parameter shape is still shown as read-only state, not a control |
 | Camera / visual device identification | No | No | No | **Not implemented, and not planned for the first workflow** — do not add camera-based device discovery before explicit pairing/verified discovery exists; seeing a device is not permission to operate it |
 
 ## Findings from the source-inspection audit (this release)

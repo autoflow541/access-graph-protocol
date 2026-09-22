@@ -20,7 +20,7 @@ AGP is currently an experimental interoperability prototype. The roadmap priorit
 - [x] W3C Web of Things adapter
 - [x] SPECS semantic view and safety bridge
 - [x] Simulated WoT smart-device/SPECS interaction demo
-- [ ] Lens Studio (SPECS 27) project — source complete in `examples/specs/lens-project/` (real TypeScript against SIK/Spectacles UI Kit/ASR/TTS, world-locked controls, hand + exact-voice input, captions/speech/large-text/high-contrast/reduced-motion/one-step, confirmation and authorization kept as separate gates); not yet device-tested (see "0.4 — Real-world pilots") and has no slider/dial input control yet for parameterized actions
+- [ ] Lens Studio (SPECS 27) project — source complete in `examples/specs/lens-project/` (real TypeScript against SIK/Spectacles UI Kit/ASR/TTS, world-locked controls, hand + exact-voice input, a bounded-numeric-parameter slider control, captions/speech/large-text/high-contrast/reduced-motion/one-step, confirmation and authorization kept as separate gates); not yet device-tested (see "0.4 — Real-world pilots")
 - [ ] Matter capability mapping experiment — data-model and trust-boundary decision already made in `docs/adr-0001-wot-reuse.md` (item 6) and researched in `docs/prior-art-and-positioning.md`; not yet implemented as an adapter
 - [ ] MCP tool projection for AGP actions
 - [ ] Event subscription model
@@ -42,7 +42,7 @@ AGP is currently an experimental interoperability prototype. The roadmap priorit
 - [ ] Smart-home/device pilot
 - [ ] Drone or robotics pilot
 - [ ] Screen-reader/assistive-technology prototype client
-- [ ] On-device Spectacles usability test of `examples/specs/lens-project/` (source complete, hardware-untested) plus a slider/dial control for parameterized actions
+- [ ] On-device Spectacles usability test of `examples/specs/lens-project/` (source complete, hardware-untested, including its `AgpParameterSlider` numeric-parameter control) — plus a multi-field/dial control for parameter shapes the slider doesn't cover (object, array, enum-only)
 - [ ] Usability study with disabled participants and accessibility practitioners
 
 ## 1.0 candidate

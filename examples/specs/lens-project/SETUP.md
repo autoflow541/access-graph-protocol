@@ -79,6 +79,7 @@ AgpApp                              (empty SceneObject)
 │      titleText / summaryText / statusBanner: child Text objects
 │      actionListContainer: child SceneObject actions attach under
 │      actionButtonPrefab: see "Action button prefab" below
+│      parameterSliderPrefab: see "Parameter slider prefab" below
 │      busyIndicator: a small spinner/label SceneObject, disabled by default
 │      highContrastOverlay: a bordered/high-contrast background SceneObject, disabled by default
 │    └─ ConfirmAuthGate             (separate focused panel, hidden until needed)
@@ -115,6 +116,30 @@ and `primaryButtonPrefab` / `secondaryButtonPrefab` (on
 `AgpConfirmationAuthorizationGate`) — one prefab, reused everywhere a
 selectable control is needed.
 
+### Parameter slider prefab
+
+For an action whose only parameter is a single bounded numeric `value`
+(e.g. the thermostat's `write_targettemperature`, `minimum: 16, maximum:
+28`) — create one prefab (e.g. `AgpParameterSlider.prefab`) with:
+
+- A SpectaclesUIKit `Slider` component (drag in from SpectaclesUIKit's
+  Asset Library entry, or its own prefab if it ships one — check the
+  Asset Browser for the exact name your installed version uses).
+- A child `Text` object showing the current value while dragging.
+- `AgpParameterSlider.ts`, with `slider` pointed at the Slider component
+  and `valueLabel` at the child Text. Set `unitSuffix` (e.g. `"°C"`) if
+  you want it appended to the displayed number.
+
+`AgpSpecsPanelView` only uses this prefab for an action whose parameter
+schema is exactly `{ value: { type: "number" | "integer", minimum, maximum } }`
+— any other parameter shape (multiple properties, an array, no declared
+bounds) is still shown as read-only state, not a slider; see
+`isSliderParameter` in `AgpSpecsPanelView.ts`. The slider only proposes an
+action (`selectAction`) once dragging finishes (`Slider.onFinished`), not
+on every intermediate value, mirroring the browser demo's range input
+(`examples/smart-device/app.js`, which requests on `"change"`, not
+`"input"`).
+
 ### Import paths to double check
 
 `AgpSpecsPanelView.ts` and `AgpConfirmationAuthorizationGate.ts` import
@@ -130,9 +155,21 @@ import { Frame } from "SpectaclesUIKit.lspkg/Scripts/Components/Frame/Frame";
 import { Interactable } from "SpectaclesInteractionKit.lspkg/Components/Interaction/Interactable/Interactable";
 ```
 
-If Lens Studio's TypeScript Status panel reports these as unresolved, your
-installed package folder has a different name — open the Asset Browser,
-find the actual folder, and update the import path to match.
+`AgpParameterSlider.ts` imports SpectaclesUIKit's `Slider` from:
+
+```ts
+import { Slider } from "SpectaclesUIKit.lspkg/Scripts/Components/Slider/Slider";
+```
+
+(SpectaclesInteractionKit also ships an older `Slider` class, at
+`SpectaclesInteractionKit.lspkg/Components/UI/Slider/Slider` — its own
+docs mark it deprecated in favor of SpectaclesUIKit's. `AgpParameterSlider.ts`
+deliberately imports the SpectaclesUIKit one.)
+
+If Lens Studio's TypeScript Status panel reports any of these as
+unresolved, your installed package folder has a different name — open the
+Asset Browser, find the actual folder, and update the import path to
+match.
 
 ## 4. What each accessibility preference actually does
 
@@ -175,10 +212,16 @@ label) is also ignored, with a log line, rather than guessed.
 
 ## Known gaps (see ROADMAP.md)
 
-- No slider/dial input control yet, so a parameterized action (e.g. the
-  thermostat's `write_targettemperature`) is shown as read-only state, not
-  exposed as a button. `AgpSpecsPanelView` filters it out generically (any
-  action with `parameters` is excluded from the button list) rather than
-  special-casing it.
+- The slider control (`AgpParameterSlider`) only handles a single bounded
+  numeric parameter. An action with a multi-property object parameter, an
+  array parameter, or an enum-only string parameter is still shown as
+  read-only state, not an input control — there is no dial, text-entry, or
+  multi-field form control yet.
+- A slider has no voice-driven equivalent yet — `AgpVoiceCommandBinding`
+  only selects zero-parameter actions and gate controls by exact phrase;
+  setting a numeric value by voice (e.g. "set target temperature to
+  twenty one") is not implemented.
 - Not yet device-tested on physical Spectacles hardware — this source has
-  not been verified running on-device.
+  not been verified running on-device. The `SpectaclesUIKit.Slider` API
+  `AgpParameterSlider.ts` uses was verified against Snap's published
+  scripting API reference, not against a running Lens.
