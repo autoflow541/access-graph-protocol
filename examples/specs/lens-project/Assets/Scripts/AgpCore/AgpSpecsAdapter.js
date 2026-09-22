@@ -206,8 +206,9 @@ function normalize(value) {
 // proposal never shares object/array references with the caller's
 // original argument — this is what gets bound to the proposal, so an
 // unvalidated, unrecognized, or externally-mutable value can never reach
-// an executor.
-function validateParameters(action, parameters) {
+// an executor. Exported so service/execution-service.js validates
+// proposals with the exact same logic instead of a third reimplementation.
+export function validateParameters(action, parameters) {
   if (!parameters || typeof parameters !== "object" || Array.isArray(parameters)) {
     throw new Error("Parameters must be an object");
   }

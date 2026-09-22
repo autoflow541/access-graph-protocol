@@ -1,5 +1,63 @@
 # Changelog
 
+## 0.1.12 — 2026-09-22
+
+Starts the execution service — `ROADMAP.md` M2 and
+`docs/audit-2026-09-22.md`'s #1 priority — as a real, tested, runnable
+server-side authority, not a design sketch. Explicitly not finished: see
+`service/README.md`, "What's not done yet," before treating this as more
+than a start.
+
+- **Added** `service/execution-service.js`: a server-side authority that
+  never trusts a caller's claim about confirmation, authorization, or
+  state — it re-derives its own answer from state it owns. This is a
+  genuinely separate trust boundary from `SpecsActionSession`
+  (client-side UX gate), not the same class running on a server. The
+  `AccessGraph` passed to its constructor *is* the reviewed device/action
+  allowlist (an unlisted device/action throws via
+  `AccessGraph.resolveAction()`, so there's no separate allowlist to keep
+  in sync). Reuses `adapters/specs/index.js`'s `validateParameters`
+  (newly exported) rather than a third reimplementation.
+- Implements the full proposal lifecycle: server-issued proposal ID,
+  caller authentication re-checked on every mutating call (not just once),
+  state-version staleness rejected both at `propose()` and again at
+  `execute()` (state can change in between), proposal expiry, and
+  duplicate-dispatch protection via a caller-generated `requestId` —
+  replaying one within `requestRetentionMs` returns the original outcome
+  without invoking the executor again. Outcomes: `succeeded` / `failed` /
+  `unknown` (dispatch exceeded `dispatchTimeoutMs` — the executor may
+  still complete, this service does not guess) / `denied` / `cancelled`.
+- Authorization is a pluggable `authorizationProvider` — a real
+  architectural improvement (one clean swap-in point instead of scattered
+  client-side trust) but **not** a real authorization backend: the default
+  `simulatedAuthorizationProvider` still just trusts what the caller
+  claims. Documented, not glossed over, in three places
+  (`service/README.md`, the class's own header comment, and
+  `docs/audit-2026-09-22.md`).
+- **Added** `service/http-server.js`: a thin, dependency-free HTTP layer
+  (Node's built-in `http`, no framework) translating requests 1:1 into
+  `ExecutionService` calls and error `.code`s into HTTP statuses.
+  `service/run-local.mjs` boots it with the same simulated thermostat
+  `examples/smart-device/` uses (`npm run service:dev`).
+- **Tested**: `tests/execution-service-test.mjs` (in-process: auth,
+  ownership, staleness at both propose and execute, nested parameter
+  validation, duplicate-dispatch dedup verified via executor call count,
+  denial, cancellation, expiry, dispatch timeout, executor failure not
+  advancing state) and `tests/execution-http-server-test.mjs` (the same
+  key properties over a real listening socket with real `fetch` calls,
+  not just in-process). The duplicate-dispatch protection was verified by
+  deliberately breaking it and confirming the test actually fails, not
+  just written and assumed correct.
+- Manually verified end-to-end against a live running instance via curl:
+  stale-state rejection, then a full propose → confirm → authorize →
+  execute cycle that actually changed `targetTemperature` from 21 to 24
+  and advanced the state version from 1 to 2.
+- **Not done** (see `service/README.md` and `NEXT.md`): no client talks to
+  this over the network yet — `examples/smart-device/` still calls
+  `SpecsActionSession`'s executor callback directly, in-process. No real
+  device is connected. `ROADMAP.md` M2 is partially, not fully, checked
+  off.
+
 ## 0.1.11 — 2026-09-22
 
 Fixes a real UI/gate confirmation-policy mismatch flagged (but not yet

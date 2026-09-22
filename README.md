@@ -1,7 +1,7 @@
 # Access Graph Protocol (AGP)
 
 [![test](https://github.com/autoflow541/access-graph-protocol/actions/workflows/test.yml/badge.svg)](https://github.com/autoflow541/access-graph-protocol/actions/workflows/test.yml)
-[![npm version](https://img.shields.io/badge/version-0.1.11-blue)](CHANGELOG.md)
+[![npm version](https://img.shields.io/badge/version-0.1.12-blue)](CHANGELOG.md)
 [![license: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![status: experimental](https://img.shields.io/badge/status-experimental-orange)](ROADMAP.md)
 
@@ -66,10 +66,12 @@ A separate **Access Profile** describes functional interaction preferences witho
 - `examples/drone/` — simulated physical-system demo using the same model
 - `examples/smart-device/` — WoT thermostat and SPECS-view simulator
 - `examples/specs/` — Lens Studio porting contract, controller, and a real Lens Studio (SPECS/Spectacles) project source tree in `examples/specs/lens-project/`
-- `tests/` — SDK and adapter tests
+- `service/` — server-side execution authority (started, not finished): device/caller allowlisting, proposal lifecycle, state-version and duplicate-dispatch protection, over a dependency-free HTTP layer — see `service/README.md`
+- `tests/` — SDK, adapter, and execution-service tests
 - `docs/prior-art-and-positioning.md` — how AGP relates to Universal Remote Console, W3C WoT, AccessKit, WAI-Adapt, MCP, Apple App Intents, A2UI, and XR accessibility research
 - `docs/capability-matrix.md` — what's actually implemented today, per adapter and client, verified against source
-- `docs/adr-0001-wot-reuse.md` — the architecture decision on reusing WoT rather than competing with it
+- `docs/adr-0001-wot-reuse.md` — the architecture decision on reusing WoT (and Matter, Home Assistant) rather than competing with them
+- `docs/audit-2026-09-22.md` — engineering audit and prioritized feature/pilot plan
 - `ROADMAP.md` — prototype-to-standardization roadmap, including a milestone plan with acceptance criteria
 
 ## Run it

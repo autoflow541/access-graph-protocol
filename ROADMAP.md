@@ -117,15 +117,25 @@ and the roadmap should say so rather than checking it off anyway.
       built second needs its own reviewed `domain`/`service` → category
       mapping, not an assumption that risk can be read from Home
       Assistant the way it's (imperfectly) read from a WoT TD.
-- [ ] The action lifecycle (proposal → validation → confirmation →
-      server-side authorization → dispatch → pending →
-      succeeded/failed/cancelled/unknown) exists server-side, with a
-      request id, target/action ids, validated parameters, a state
-      version, and duplicate-request handling. Acceptance: a request
-      replayed with the same request id does not dispatch twice; a
-      request whose bound state version is stale is rejected with a
-      specific "state changed, re-propose" outcome rather than executing
-      against stale assumptions.
+- [x] The action lifecycle (proposal → validation → confirmation →
+      server-side authorization → dispatch → succeeded/failed/unknown/
+      cancelled) exists server-side, in `service/execution-service.js`,
+      with a server-issued proposal id, a caller-generated request id,
+      target/action ids, validated parameters (reusing
+      `adapters/specs/index.js`'s `validateParameters`, not a third
+      reimplementation), a state version, and duplicate-request handling.
+      A thin, dependency-free HTTP layer (`service/http-server.js`, Node's
+      built-in `http`, no framework) sits over it. Acceptance verified:
+      a request replayed with the same request id does not dispatch twice
+      (asserted via executor call count, both in-process and over a real
+      HTTP round trip); a request whose bound state version is stale is
+      rejected with `STALE_STATE`, both at `propose()` and again at
+      `execute()` since state can change in between; an unauthenticated
+      caller never reaches dispatch. See `service/README.md` for what
+      this does and does not close (authorization is still simulated by
+      default — now a pluggable, server-owned decision point, not a
+      solved one) and `tests/execution-service-test.mjs` /
+      `tests/execution-http-server-test.mjs`.
 - [ ] Browser reference client (`examples/smart-device/` evolved, or a
       new example) completes the room-control tasks: read temperature and
       device status; propose and execute a bounded simulated
@@ -133,7 +143,10 @@ and the roadmap should say so rather than checking it off anyway.
       execution service; see success, denial, disconnection, and
       uncertain-outcome states distinctly; cancel a pending action before
       dispatch. Acceptance: each of those five is a distinct, demonstrable
-      flow, keyboard- and screen-reader-operable.
+      flow, keyboard- and screen-reader-operable. **Not started**:
+      `examples/smart-device/app.js` still calls `SpecsActionSession`'s
+      executor callback directly, in-process — nothing yet talks to
+      `service/` over the network.
 
 **M3 — Real device connected, SPECS client compiled and integrated**
 - [ ] One real lamp switched on/off end-to-end through the execution
