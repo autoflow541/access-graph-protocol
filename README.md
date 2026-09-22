@@ -1,5 +1,10 @@
 # Access Graph Protocol (AGP)
 
+[![test](https://github.com/autoflow541/access-graph-protocol/actions/workflows/test.yml/badge.svg)](https://github.com/autoflow541/access-graph-protocol/actions/workflows/test.yml)
+[![npm version](https://img.shields.io/badge/version-0.1.2-blue)](CHANGELOG.md)
+[![license: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+[![status: experimental](https://img.shields.io/badge/status-experimental-orange)](ROADMAP.md)
+
 **Experimental draft — version 0.1**
 
 Access Graph Protocol is an open interoperability experiment for exposing the **meaning, state, actions, relationships, and safety characteristics** of software, devices, robots, and environments in a common machine-readable form.
