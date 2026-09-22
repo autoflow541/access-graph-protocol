@@ -1,5 +1,53 @@
 # Changelog
 
+## 0.1.20: 2026-09-22
+
+A fourth media type, the first backed by an already-deployed production service.
+
+- New `adapters/pdf-remediation/`: models a PDF document and Auto-Flow's
+  already-deployed AI-driven remediation service (pdf.auto-flow.co) as
+  an AGP object. `check_accessibility` and `analyze` project the real
+  `/validate` and `/autotag` endpoints as informational, no-confirmation
+  actions; `remediate` projects the real `/remediate` endpoint,
+  `risk: "low"` with confirmation required, since it is an AI making
+  judgment calls (heading levels, alt text, reading order, table
+  structure) that produce a new document, not purely informational.
+- New `service/pdf-executor.mjs`: dispatches through real HTTP multipart
+  requests using only Node's built-in `fetch`/`FormData`/`Blob`, no new
+  HTTP dependency.
+- New `additionalProperties: true`: a narrow, explicit opt-in on AGP's
+  object-parameter schema (`adapters/specs/index.js`'s `validateValue`,
+  `schema/access-graph.schema.json`) for genuinely open-ended object
+  data. The PDF manifest is a large, variable, AI-generated structure
+  tree; without this, `remediate`'s manifest parameter would have had to
+  either fully re-declare that shape or reject every key in it. The
+  closed-by-default behavior for every other object parameter (reject
+  undeclared keys) is unchanged and still tested
+  (`tests/proposal-validation-test.mjs`); `adapters/wot/index.js` also
+  now reads this standard JSON Schema keyword through from a real Thing
+  Description rather than silently dropping it.
+- Verified live against **production**, not a local simulation: the full
+  propose → confirm → execute lifecycle, over real HTTP, against
+  pdf.auto-flow.co. A genuinely valid, PDF/UA-compliant remediated PDF
+  came back (confirmed with the `file` command, not just a status code),
+  with real `claude-sonnet-5` AI cost reported
+  (`conformance.aiCost.costUsd`). Two real findings surfaced doing this,
+  not staged: `ExecutionService` advances the state version on every
+  successful dispatch, including purely informational ones, so a client
+  must re-check state between *any* two proposals; and AI-augmented
+  remediation needs a much longer `dispatchTimeoutMs` than a device
+  property write (the default 10s failed against the real service, 60s
+  did not, ~13s observed).
+- New `tests/pdf-remediation-test.mjs`: object shape, confirmation
+  gating, and the executor's request/response plumbing, with `fetch`
+  stubbed rather than calling the real, billed production service on
+  every `npm test`. The real-backend verification above was manual, not
+  repeatable CI coverage.
+- Docs updated: `README.md`, `ROADMAP.md`'s 0.2 milestone, `NEXT.md`,
+  `SECURITY.md` (sending a document to a remediation backend is exactly
+  why `remediate` requires confirmation, alongside it being an AI
+  judgment call).
+
 ## 0.1.19: 2026-09-22
 
 AI-described-environment capability, a non-IoT media type.

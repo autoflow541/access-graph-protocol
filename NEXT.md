@@ -151,6 +151,44 @@ in `service/run-local-vision.mjs`, never sent to the browser client; see
 (a captured frame can contain bystanders who never consented), which AGP's
 existing risk model does not yet address.
 
+## AI-driven document remediation capability: started, not finished
+
+`adapters/pdf-remediation/` is the fourth media type, and the first
+backed by an already-deployed production service (pdf.auto-flow.co)
+instead of something built for this repo. `check_accessibility` and
+`analyze` project the real `/validate` and `/autotag` endpoints as
+informational actions; `remediate` projects the real `/remediate`
+endpoint and requires confirmation, since it is an AI making judgment
+calls that produce a new document.
+
+Verified live against production, for real: the full propose → confirm →
+execute lifecycle over real HTTP, a genuinely valid PDF/UA-compliant
+remediated file (confirmed with `file`, not just a status code), real
+`claude-sonnet-5` AI cost reported. Two real findings came out of this,
+not staged for the demo:
+
+- `ExecutionService` advances the state version on every successful
+  dispatch, including purely informational ones, so a client must
+  re-check state between *any* two proposals, not only after an action
+  that changed something. Worth revisiting: should read-only dispatches
+  advance state at all?
+- AI-augmented remediation needs a much longer `dispatchTimeoutMs` than a
+  device property write. The default 10s failed against the real
+  service; 60s did not, at ~13s observed.
+
+Also added: `additionalProperties: true`, a narrow opt-in on AGP's
+object-parameter schema (`adapters/specs/index.js`, `schema/access-graph.schema.json`)
+for genuinely open-ended object data, so the PDF manifest (a large,
+variable, AI-generated structure) does not have to be fully re-declared
+field-by-field to pass validation. The closed-by-default behavior for
+every other object parameter is unchanged and tested
+(`tests/proposal-validation-test.mjs`).
+
+Not done: `tests/pdf-remediation-test.mjs` stubs the network rather than
+calling the real, billed production service on every `npm test`; the
+real-backend verification above was manual, not repeatable CI coverage.
+No browser demo yet (unlike vision-assistant/execution-client).
+
 ## Still open
 
 WoT schema coverage, cross-discovery stable IDs, Lens Studio/hardware

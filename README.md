@@ -1,7 +1,7 @@
 # Access Graph Protocol (AGP)
 
 [![test](https://github.com/autoflow541/access-graph-protocol/actions/workflows/test.yml/badge.svg)](https://github.com/autoflow541/access-graph-protocol/actions/workflows/test.yml)
-[![npm version](https://img.shields.io/badge/version-0.1.19-blue)](CHANGELOG.md)
+[![npm version](https://img.shields.io/badge/version-0.1.20-blue)](CHANGELOG.md)
 [![license: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![status: experimental](https://img.shields.io/badge/status-experimental-orange)](ROADMAP.md)
 
@@ -63,6 +63,7 @@ A separate **Access Profile** describes functional interaction preferences witho
 - `adapters/wot/`: W3C Web of Things Thing Description adapter
 - `adapters/specs/`: SPECS presentation and action-safety bridge
 - `adapters/vision-assistant/`: an AI-described-environment capability ("what am I looking at?", "read this to me") as an AGP object, not tied to one camera vendor's hardware
+- `adapters/pdf-remediation/`: a fourth media type, and the first backed by an already-deployed production service (Auto-Flow's pdf.auto-flow.co) rather than something built for this repo: check/analyze/remediate a PDF through AGP's execution model
 - `examples/website/`: adaptive web demo
 - `examples/drone/`: simulated physical-system demo using the same model
 - `examples/smart-device/`: WoT thermostat and SPECS-view simulator

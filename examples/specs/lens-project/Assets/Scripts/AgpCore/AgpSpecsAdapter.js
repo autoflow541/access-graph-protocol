@@ -257,8 +257,20 @@ function validateValue(schema, value, path) {
   }
   if (type === "object") {
     const properties = schema.properties || {};
-    for (const key of Object.keys(value)) {
-      if (!Object.prototype.hasOwnProperty.call(properties, key)) fail(`contains unknown property "${key}"`);
+    // Closed by default: an undeclared key fails, the same defense
+    // against forwarding unvalidated data to an executor that motivated
+    // rejecting unknown top-level parameters in the first place. An
+    // adapter that genuinely cannot enumerate an object's shape (e.g. a
+    // large, variable, externally-generated structure like a PDF
+    // remediation manifest, adapters/pdf-remediation/index.js) must opt
+    // in explicitly with `additionalProperties: true`; this never
+    // weakens validation for a schema that didn't ask for it, and any
+    // properties that ARE declared are still validated normally either
+    // way.
+    if (schema.additionalProperties !== true) {
+      for (const key of Object.keys(value)) {
+        if (!Object.prototype.hasOwnProperty.call(properties, key)) fail(`contains unknown property "${key}"`);
+      }
     }
     for (const [key, child] of Object.entries(properties)) {
       const present = Object.prototype.hasOwnProperty.call(value, key) && value[key] !== undefined;

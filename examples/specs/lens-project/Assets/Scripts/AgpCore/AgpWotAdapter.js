@@ -265,6 +265,10 @@ function schemaParameter(schema = {}, required = true) {
     return {
       type: "object",
       ...shared,
+      // additionalProperties is a standard JSON Schema keyword a WoT data
+      // schema can legitimately declare; read it through rather than
+      // silently dropping it (ADR-0001: read what's already there).
+      ...(schema.additionalProperties === true ? { additionalProperties: true } : {}),
       properties: Object.fromEntries(
         Object.entries(schema.properties).map(([name, propSchema]) => [name, schemaParameter(propSchema, requiredNames.has(name))])
       )

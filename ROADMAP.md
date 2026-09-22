@@ -39,6 +39,39 @@ AGP is currently an experimental interoperability prototype. The roadmap priorit
       camera capture itself is browser-verified only for the
       permission-denied path, not the happy path, since this environment
       has no camera access.
+- [x] AI-driven document remediation capability
+      (`adapters/pdf-remediation/`): the first AGP object backed by an
+      already-deployed production service (pdf.auto-flow.co) rather than
+      something built for this repo. `check_accessibility` and `analyze`
+      project the service's real `/validate` and `/autotag` endpoints as
+      informational, no-confirmation actions; `remediate` projects the
+      real `/remediate` endpoint and requires confirmation (`risk: "low"`),
+      since it is an AI making judgment calls that produce a new
+      document, not purely informational. Verified live, for real,
+      against production: the full propose → confirm → execute lifecycle
+      dispatched real HTTP multipart requests to pdf.auto-flow.co,
+      returned a genuinely valid, PDF/UA-compliant remediated file
+      (confirmed with the `file` command, not just a status code), with
+      real `claude-sonnet-5` AI cost reported
+      (`conformance.aiCost.costUsd`). This surfaced a real architectural
+      finding, not a bug: `ExecutionService` advances the state version
+      on every successful dispatch, including informational ones, so a
+      client must re-check state between *any* two proposals, not only
+      after an action that changes something; also that AI-augmented
+      remediation genuinely needs a longer `dispatchTimeoutMs` than a
+      device property write (the default 10s failed against the real
+      service; 60s did not). Also added: `additionalProperties: true`,
+      a new, narrowly-scoped opt-in on AGP's object-parameter schema
+      (`adapters/specs/index.js`'s `validateValue`,
+      `schema/access-graph.schema.json`) for genuinely open-ended object
+      data (the PDF manifest) that would otherwise have to fully
+      enumerate a large, variable, AI-generated shape just to pass
+      validation; the closed-by-default behavior for every other object
+      parameter is unchanged and tested. The automated test suite
+      (`tests/pdf-remediation-test.mjs`) stubs the network rather than
+      calling the real, billed production service on every `npm test`;
+      the real-backend verification above was manual, not repeatable CI
+      coverage.
 - [ ] Lens Studio (SPECS 27) project: source complete in `examples/specs/lens-project/` (real TypeScript against SIK/Spectacles UI Kit/ASR/TTS, world-locked controls, hand + exact-voice input, a bounded-numeric-parameter slider control, captions/speech/large-text/high-contrast/reduced-motion/one-step, confirmation and authorization kept as separate gates); not yet device-tested (see "0.4: Real-world pilots")
 - [ ] Matter capability mapping experiment: data-model and trust-boundary decision already made in `docs/adr-0001-wot-reuse.md` (item 6) and researched in `docs/prior-art-and-positioning.md`; not yet implemented as an adapter
 - [ ] MCP tool projection for AGP actions

@@ -39,6 +39,35 @@ assert.deepEqual((await session.execute({steps:[1,3],settings:{mode:'eco',level:
 assert.equal(calls,1);
 await assert.rejects(()=>session.execute(),/No pending/);
 
+// --- additionalProperties: true is an explicit, per-parameter opt-in for genuinely open-ended object data
+// (e.g. a PDF remediation manifest, adapters/pdf-remediation/index.js): it never weakens the default-closed
+// behavior above (still rejects unknown keys, still validates declared ones) unless a schema asks for it.
+// Built as a raw AGP object (not through thingDescriptionToAgp), matching how adapters/pdf-remediation/index.js
+// actually constructs its object: this is a native-AGP parameter feature, not something WoT-specific.
+{
+  const openGraph = new AccessGraph([{
+    id: 'open-room', role: 'test', label: 'Open room', state: {}, actions: [{
+      id: 'configure', label: 'Configure', risk: 'none',
+      parameters: {
+        manifest: {
+          type: 'object', required: true, additionalProperties: true,
+          properties: { title: { type: 'string', required: true } }
+        }
+      }
+    }]
+  }]);
+  const openObject = openGraph.get('open-room');
+  const openSession = new SpecsActionSession(openGraph, {}, async (_o,_a,p) => p, {proposalTtlMs:100,now:()=>0});
+  // Arbitrary extra keys, plus nested arbitrary structure, are accepted.
+  const arbitrary = { manifest: { title: 'doc', nodes: [{ id: 'n1', tag: 'H1', whatever: { deeply: 'nested' } }], count: 3 } };
+  assert.doesNotThrow(() => openSession.request(openObject.id, 'configure', arbitrary));
+  // A declared property inside that same object is still validated normally.
+  assert.throws(() => openSession.request(openObject.id, 'configure', { manifest: { nodes: [] } }), /missing required property "title"/);
+
+  // The default (closed) object elsewhere in this same test file is unaffected: unknown keys still fail there.
+  assert.throws(() => request({ ...good(), settings: { ...good().settings, extra: 'unvalidated' } }), /unknown property/);
+}
+
 // Expiry is checked on every advancing transition, with no sleeps.
 for (const transition of ['confirm','provideAuthorization','execute']) {
  clock=0;request(good());

@@ -60,6 +60,7 @@
           "type": "object",
           "additionalProperties": { "$ref": "#/$defs/parameter" }
         },
+        "additionalProperties": { "type": "boolean" },
         "unsupported": { "type": "boolean" },
         "sourceSchema": { "type": "object" }
       },
