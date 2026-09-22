@@ -10,9 +10,11 @@ function buildGraph() {
       label: "Lamp",
       state: { on: false },
       actions: [
-        { id: "turn_on", label: "Turn on", risk: "low", confirmation: false, authorization: { required: true } },
+        { id: "turn_on", label: "Turn on", risk: "low", confirmation: false, category: "lighting", authorization: { required: true } },
         { id: "set_brightness", label: "Set brightness", risk: "low", confirmation: false, authorization: { required: true },
-          parameters: { value: { type: "integer", minimum: 0, maximum: 100, required: true } } }
+          parameters: { value: { type: "integer", minimum: 0, maximum: 100, required: true } } },
+        { id: "calibrate", label: "Calibrate sensor", risk: "low", confirmation: false, authorization: { required: false },
+          parameters: { sensor: { type: "unsupported" } } }
       ]
     }
   ]);
@@ -191,4 +193,32 @@ async function readyProposal(service, callerToken = "good-token", actionId = "tu
   assert.throws(() => new ExecutionService({ graph: {}, executor: async () => {}, allowedCallers: new Set(["x"]) }));
 }
 
-console.log("Execution service test passed (auth, staleness, dedup, timeout, expiry, denial, cancel)");
+// --- inspect(): resolved (not just declared) confirmation/authorization per action, and a structural blocked reason for an unsupported parameter schema
+{
+  const { service } = makeService();
+  const { actions } = service.inspect({ callerToken: "good-token", objectId: "lamp-01" });
+  const turnOn = actions.find((a) => a.id === "turn_on");
+  assert.equal(turnOn.requiresConfirmation, false);
+  assert.equal(turnOn.authorizationRequired, true);
+  assert.equal(turnOn.blocked, false);
+  assert.equal(turnOn.blockedReason, null);
+
+  const calibrate = actions.find((a) => a.id === "calibrate");
+  assert.equal(calibrate.blocked, true);
+  assert.match(calibrate.blockedReason, /sensor/);
+  assert.match(calibrate.blockedReason, /cannot be proposed/);
+
+  assert.throws(() => service.inspect({ callerToken: "bad-token", objectId: "lamp-01" }), { code: "UNAUTHENTICATED" });
+  assert.throws(() => service.inspect({ callerToken: "good-token", objectId: "unknown-device" }), { code: "UNKNOWN_DEVICE" });
+}
+
+// --- inspect() reflects the Access Profile's category-triggered confirmation floor, not just each action's own declared flag
+// (turn_on declares confirmation: false, but its category ("lighting") is in this profile's confirmation_for list)
+{
+  const { service } = makeService({ profile: { interaction: { confirmation_for: ["lighting"] } } });
+  const { actions } = service.inspect({ callerToken: "good-token", objectId: "lamp-01" });
+  assert.equal(actions.find((a) => a.id === "turn_on").requiresConfirmation, true);
+  assert.equal(actions.find((a) => a.id === "set_brightness").requiresConfirmation, false);
+}
+
+console.log("Execution service test passed (auth, staleness, dedup, timeout, expiry, denial, cancel, inspect)");

@@ -47,14 +47,39 @@ sense:
   swap-in point now, but nobody has built one.
 - **No real device connected.** M3's `node-wot` integration
   (`docs/adr-0001-wot-reuse.md`) is still ahead of this.
-- **No accessible task inspector, capability negotiation, or scenario
-  runner** — `docs/audit-2026-09-22.md`'s next priorities after this one.
+- **No capability negotiation or scenario runner** —
+  `docs/audit-2026-09-22.md`'s next priorities after the task inspector.
+
+## Accessible task inspector: started, not finished
+
+`ExecutionService.inspect()` (`service/execution-service.js`) and
+`GET /devices/:id/inspect` (`service/http-server.js`) exist and are
+tested in-process and over real HTTP. It returns, per action: the
+server-resolved confirmation/authorization verdict (not just the
+action's own declared flags — folds in the Access Profile via
+`AccessGraph.resolveAction`), category-trust provenance ("reviewed" vs
+"declared"), and a structural blocked reason where one exists (currently
+only: an unsupported parameter schema). Rendered in
+`examples/execution-client/` as a native `<details>`/`<summary>` per
+action, no custom JS for the disclosure itself.
+
+Verified live: mouse activation opens each entry with correct,
+server-computed content (cross-checked against a direct curl of the
+endpoint). `Tab` moves focus through every entry. **Not verified**:
+synthetic `Enter`/`Space` activation through the browser-automation tool
+used for this check — it also failed identically on the page's
+pre-existing `<details>` block that shipped before this change, so this
+reads as a limitation of that tool's key dispatch against native UA
+default actions, not a markup defect, but it is still an open item, not
+a confirmed one. No real screen reader has been used against this or any
+other browser example in this repo. See `docs/audit-2026-09-22.md` item
+3 and `ROADMAP.md`'s M2 milestone.
 
 ## Still open
 
 WoT schema coverage, cross-discovery stable IDs, Lens Studio/hardware
-verification, accessible task inspector, capability negotiation, and
-scenario runner. See `docs/audit-2026-09-22.md` for acceptance criteria
-and feature priorities. ("UI versus executor confirmation consistency"
-from the original audit finding was fixed — see CHANGELOG.md's 0.1.11
-entry.)
+verification, real screen-reader verification of every browser example,
+capability negotiation, and scenario runner. See
+`docs/audit-2026-09-22.md` for acceptance criteria and feature
+priorities. ("UI versus executor confirmation consistency" from the
+original audit finding was fixed — see CHANGELOG.md's 0.1.11 entry.)

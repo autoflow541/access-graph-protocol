@@ -19,7 +19,10 @@ const gateMessage = document.querySelector("#gate-message");
 const gateActions = document.querySelector("#gate-actions");
 const outcomeEl = document.querySelector("#outcome");
 const graphJson = document.querySelector("#graph-json");
+const inspectorList = document.querySelector("#inspector-list");
 const announcer = document.querySelector("#announcer");
+
+const RISK_ORDER = ["none", "low", "medium", "high", "critical"];
 
 let currentObject = null;
 let currentStateVersion = null;
@@ -69,7 +72,28 @@ async function loadDevice() {
   } catch (error) {
     setConnectionStatus("error", error.message);
     actionsEl.replaceChildren();
+    inspectorList.replaceChildren(errorParagraph(error.message));
+    return;
   }
+
+  // A separate call, not folded into the render() above: the task
+  // inspector's job is explaining every declared action (including ones
+  // render() doesn't turn into a button), so if THIS call fails while the
+  // main device card loaded fine, that should show as its own local
+  // error, not take down the whole page.
+  try {
+    const inspected = await api("GET", `/devices/${DEVICE_ID}/inspect`);
+    renderInspector(inspected.actions);
+  } catch (error) {
+    inspectorList.replaceChildren(errorParagraph(`Could not load the task inspector: ${error.message}`));
+  }
+}
+
+function errorParagraph(message) {
+  const p = document.createElement("p");
+  p.className = "outcome failed";
+  p.textContent = message;
+  return p;
 }
 
 function render() {
@@ -241,6 +265,88 @@ function gateButton(label, handler, secondary = false) {
 
 function announce(message) {
   announcer.textContent = message;
+}
+
+function renderInspector(actions) {
+  inspectorList.replaceChildren(...actions.map(inspectorEntry));
+}
+
+function inspectorEntry(action) {
+  const details = document.createElement("details");
+  details.className = "inspector-entry";
+
+  const summary = document.createElement("summary");
+  const badges = [`risk: ${action.risk}`];
+  if (action.blocked) badges.push("blocked");
+  summary.textContent = `${action.label} (${badges.join(", ")})`;
+  details.append(summary);
+
+  const dl = document.createElement("dl");
+  dl.append(...fragment("Category", action.category ? humanize(action.category) : "None declared"));
+  dl.append(...fragment("Classification", categoryProvenance(action)));
+  dl.append(...fragment("Confirmation", confirmationExplanation(action)));
+  dl.append(...fragment("Authorization", authorizationExplanation(action)));
+  if (action.parameters) dl.append(...fragment("Parameters", parametersExplanation(action.parameters)));
+  dl.append(...fragment("Can be proposed?", action.blocked ? action.blockedReason : "Yes — no structural block."));
+  details.append(dl);
+
+  return details;
+}
+
+// "Declared" vs "reviewed" is the AGP category-trust distinction: a
+// category an adapter matched against a known vocabulary (e.g. a WoT
+// property/action shape it recognizes) is "reviewed"; a category the
+// device merely asserted about itself (e.g. a WoT `x-agp-category`
+// vendor extension) is only "declared" — trusted enough to RAISE the
+// applicable risk/confirmation floor, never to lower it. See
+// adapters/wot/index.js's resolveCategory and docs/audit-2026-09-22.md.
+function categoryProvenance(action) {
+  if (!action.category) return "No category to classify.";
+  if (action.categoryTrust === "reviewed") {
+    return "Reviewed — independently matched against the device's declared vocabulary, not just trusted from what the device claims about itself.";
+  }
+  if (action.categoryTrust === "declared") {
+    return "Declared only — this category came from what the device itself asserted and has not been independently reviewed. It can only raise this action's risk/confirmation requirement, never lower it below what an unclassified action of this kind would require.";
+  }
+  return "Unclassified — this action did not come through an adapter that records category provenance.";
+}
+
+// The exact disjuncts below mirror sdk/javascript/agp.js's
+// requiresConfirmationFor(action, profile) — action.confirmation and
+// risk are both visible directly on the resolved action, so if
+// requiresConfirmation is true but neither of those applies, the
+// category-triggered branch must be the reason. This is elimination on
+// a known three-way formula, not a guess.
+function confirmationExplanation(action) {
+  if (!action.requiresConfirmation) return "Not required.";
+  const reasons = [];
+  if (RISK_ORDER.indexOf(action.risk) >= RISK_ORDER.indexOf("high")) {
+    reasons.push(`its risk (${action.risk}) is high or above`);
+  }
+  if (action.confirmation) reasons.push("the device explicitly declares this action requires confirmation");
+  if (reasons.length === 0) {
+    reasons.push(`its category ("${action.category}") is one this device's Access Profile requires confirmation for`);
+  }
+  return `Required — because ${reasons.join(" and ")}.`;
+}
+
+function authorizationExplanation(action) {
+  if (!action.authorizationRequired) return "Not required.";
+  return "Required — the device's action definition marks this as needing authorization before dispatch. Authorization is enforced server-side (service/execution-service.js), but the default provider is simulated: it trusts whatever the caller asserts. See SECURITY.md.";
+}
+
+function parametersExplanation(parameters) {
+  return Object.entries(parameters)
+    .map(([name, schema]) => {
+      const bounds = [];
+      if (schema.minimum !== undefined) bounds.push(`min ${schema.minimum}`);
+      if (schema.maximum !== undefined) bounds.push(`max ${schema.maximum}`);
+      if (Array.isArray(schema.enum)) bounds.push(`one of: ${schema.enum.join(", ")}`);
+      if (schema.unit) bounds.push(schema.unit);
+      const detail = [schema.type ?? "unknown type", schema.required ? "required" : "optional", ...bounds].join(", ");
+      return `${name} (${detail})`;
+    })
+    .join("; ");
 }
 
 function humanize(value) {

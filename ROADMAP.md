@@ -159,6 +159,24 @@ and the roadmap should say so rather than checking it off anyway.
       unchecked). "Switch one real lamp on/off" was moved out of this
       criterion — that's M3's job (a real device), not this one (a real
       service in front of a still-simulated device).
+- [ ] Accessible task inspector (`docs/audit-2026-09-22.md` item 3):
+      `ExecutionService.inspect()` / `GET /devices/:id/inspect` and its
+      rendering in `examples/execution-client/` exist and are tested
+      in-process and over real HTTP (`tests/execution-service-test.mjs`,
+      `tests/execution-http-server-test.mjs`), including that a
+      category-only confirmation trigger is correctly surfaced even when
+      an action's own `confirmation` flag is `false`. Live-verified:
+      mouse activation of every per-action `<details>` disclosure opens
+      it with correct, server-resolved content; `Tab` reaches every
+      entry. Unchecked for two reasons, both stated plainly rather than
+      glossed over: synthetic `Enter`/`Space` key activation could not be
+      confirmed through the browser-automation tool used for this check
+      (it also failed on the page's pre-existing, already-shipped
+      `<details>` block, so this reads as a tool limitation against
+      native UA default actions, not a markup defect — but it is still
+      an unconfirmed claim, not a verified one); and, same as the
+      browser reference client above, no real screen reader has been
+      used against this page.
 
 **M3 — Real device connected, SPECS client compiled and integrated**
 - [ ] One real lamp switched on/off end-to-end through the execution

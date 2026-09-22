@@ -87,6 +87,53 @@ export class ExecutionService {
   }
 
   /**
+   * Everything describe() returns, plus a per-action explanation: the
+   * server-resolved confirmation/authorization verdict (not just the
+   * action's own declared flags — `AccessGraph.resolveAction` also folds
+   * in this service's Access Profile, e.g. a category-triggered
+   * confirmation floor a raw action object wouldn't show on its own),
+   * where its risk/category classification came from
+   * (`metadata.category_trust`: "reviewed" vs "declared" — see the WoT
+   * adapter's category-trust gap fix), and whether the action can be
+   * proposed at all right now. The one thing this service can determine
+   * without side effects is a permanently-unsupported parameter schema
+   * (the same check `propose()` would fail on); it does not model
+   * state-dependent "not applicable right now" blocking, because nothing
+   * in this codebase computes that yet — see docs/audit-2026-09-22.md.
+   * Exists for the accessible task inspector (examples/execution-client),
+   * so it can explain "why" without having to create and discard a
+   * proposal just to find out.
+   */
+  inspect({ callerToken, objectId }) {
+    this._authenticate(callerToken);
+    const object = this.graph.get(objectId);
+    if (!object) throw serviceError("UNKNOWN_DEVICE", `Unknown device: ${objectId}`);
+
+    const actions = object.actions.map((action) => {
+      const resolved = this.graph.resolveAction(objectId, action.id, this.profile);
+      const unsupportedPath = firstUnsupportedParameterPath(action.parameters);
+      const blockedReason = unsupportedPath
+        ? `Parameter "${unsupportedPath}" has a schema this adapter cannot validate, so this action cannot be proposed.`
+        : null;
+      return {
+        id: action.id,
+        label: action.label,
+        risk: action.risk ?? "none",
+        category: action.category ?? null,
+        categoryTrust: action.metadata?.category_trust ?? null,
+        parameters: action.parameters ?? null,
+        confirmation: Boolean(action.confirmation),
+        requiresConfirmation: resolved.requiresConfirmation,
+        authorizationRequired: resolved.authorizationRequired,
+        blocked: blockedReason !== null,
+        blockedReason
+      };
+    });
+
+    return { object, stateVersion: this._stateVersions.get(objectId), actions };
+  }
+
+  /**
    * Creates an immutable, server-issued proposal. `stateVersion` must
    * match what this service currently reports for the device (from
    * describe()) — a stale value is rejected rather than silently
@@ -264,6 +311,35 @@ function serviceError(code, message) {
   const error = new Error(message);
   error.code = code;
   return error;
+}
+
+// Recursively walks a resolved action's parameter schema looking for a
+// node adapters/specs/index.js's validateValue would reject outright
+// (`type: "unsupported"`, or a schema object explicitly marked
+// `unsupported`) — the one structural reason an action can never be
+// proposed, independent of what parameters a caller supplies. Returns a
+// dotted/bracketed path to the first such node, or null.
+function firstUnsupportedParameterPath(parameters, prefix = "") {
+  if (!parameters) return null;
+  for (const [name, schema] of Object.entries(parameters)) {
+    const found = unsupportedInSchema(schema, prefix ? `${prefix}.${name}` : name);
+    if (found) return found;
+  }
+  return null;
+}
+
+function unsupportedInSchema(schema, path) {
+  if (!schema || schema.unsupported || schema.type === "unsupported") return path;
+  if (schema.type === "object" && schema.properties) {
+    for (const [key, sub] of Object.entries(schema.properties)) {
+      const found = unsupportedInSchema(sub, `${path}.${key}`);
+      if (found) return found;
+    }
+  }
+  if (schema.type === "array" && schema.items) {
+    return unsupportedInSchema(schema.items, `${path}[]`);
+  }
+  return null;
 }
 
 function randomId(prefix) {

@@ -1,5 +1,48 @@
 # Changelog
 
+## 0.1.15 — 2026-09-22
+
+Accessible task inspector — `docs/audit-2026-09-22.md` priority 3.
+
+- New `ExecutionService.inspect()` (`service/execution-service.js`) and
+  `GET /devices/:id/inspect` (`service/http-server.js`): everything
+  `describe()` returns, plus a per-action explanation — the
+  server-resolved `requiresConfirmation`/`authorizationRequired` (via
+  `AccessGraph.resolveAction`, which folds in the Access Profile, not
+  just each action's own declared flags), `categoryTrust` ("reviewed" vs
+  "declared" — the WoT adapter's category-trust provenance), and a
+  structural `blocked`/`blockedReason` for the one block condition
+  determinable without side effects: an unsupported parameter schema
+  node. Exists so a client can explain *why* without creating and
+  discarding a proposal just to find out.
+- New tests (`tests/execution-service-test.mjs`,
+  `tests/execution-http-server-test.mjs`) assert, in-process and over
+  real HTTP: a category-only confirmation trigger is correctly reported
+  even when an action's own `confirmation` flag is `false`; a
+  structurally unsupported parameter is correctly flagged as blocked
+  with a path-specific reason; unauthenticated/unknown-device calls are
+  rejected the same way every other `inspect()`-adjacent call is.
+- `examples/execution-client/` gained an "Accessible task inspector"
+  section: every declared action (not just the ones rendered as buttons)
+  as a native `<details>`/`<summary>` disclosure, no custom JS for the
+  disclosure interaction, showing risk, category, classification
+  provenance, confirmation/authorization requirements with a
+  plain-language reason, parameters, and whether the action can be
+  proposed at all. Verified live against the real service: mouse
+  activation opens each entry with correct, server-computed content
+  (cross-checked against a direct curl of `/inspect`); `Tab` reaches
+  every entry. **Not verified**: synthetic `Enter`/`Space` activation
+  through the browser-automation tool used for this check — reproduced
+  identically on the page's pre-existing `<details>` block that shipped
+  before this change, so this reads as a limitation of that tool's key
+  dispatch against native UA default actions, not a defect in the
+  markup, but it remains an open item rather than a confirmed one. No
+  real screen reader has been used against this or any other browser
+  example in this repo.
+- Docs updated to match exactly what was and wasn't verified:
+  `docs/audit-2026-09-22.md`, `NEXT.md`, `ROADMAP.md`'s M2 milestone,
+  `service/README.md`.
+
 ## 0.1.14 — 2026-09-22
 
 Documentation-only release: closes the specific gaps 0.1.13 left open —

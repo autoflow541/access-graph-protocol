@@ -57,7 +57,9 @@ export function createExecutionHttpServer(service, { corsOrigin = "*" } = {}) {
       let deviceMatch;
       let proposalMatch;
 
-      if (req.method === "GET" && (deviceMatch = url.pathname.match(/^\/devices\/([^/]+)$/))) {
+      if (req.method === "GET" && (deviceMatch = url.pathname.match(/^\/devices\/([^/]+)\/inspect$/))) {
+        result = service.inspect({ callerToken: token, objectId: decodeURIComponent(deviceMatch[1]) });
+      } else if (req.method === "GET" && (deviceMatch = url.pathname.match(/^\/devices\/([^/]+)$/))) {
         result = service.describe({ callerToken: token, objectId: decodeURIComponent(deviceMatch[1]) });
       } else if (req.method === "POST" && (deviceMatch = url.pathname.match(/^\/devices\/([^/]+)\/actions\/([^/]+)\/propose$/))) {
         result = service.propose({

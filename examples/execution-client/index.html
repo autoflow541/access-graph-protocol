@@ -46,6 +46,19 @@
         </article>
       </section>
 
+      <section class="inspector" aria-labelledby="inspector-title">
+        <p class="eyebrow">Accessible task inspector</p>
+        <h2 id="inspector-title">Every action on this device</h2>
+        <p>
+          Every action the device declares, whether or not it's currently rendered as a
+          button above — its risk, which category the confirmation/authorization gate came
+          from, whether that classification was independently reviewed or only declared by
+          the device itself, and, if it can't be proposed at all, why not. Keyboard-operable:
+          each action is a native <code>&lt;details&gt;</code> disclosure.
+        </p>
+        <div id="inspector-list" class="inspector-list"></div>
+      </section>
+
       <details>
         <summary>Inspect the service's raw describe() response</summary>
         <pre id="graph-json"></pre>

@@ -63,11 +63,28 @@ required on every request.
 | Method | Path | Body | Calls |
 |---|---|---|---|
 | GET | `/devices/:objectId` | — | `describe()` |
+| GET | `/devices/:objectId/inspect` | — | `inspect()` |
 | POST | `/devices/:objectId/actions/:actionId/propose` | `{ parameters, stateVersion }` | `propose()` |
 | POST | `/proposals/:proposalId/confirm` | `{ accepted }` | `confirm()` |
 | POST | `/proposals/:proposalId/authorize` | `{ evidence }` | `authorize()` |
 | POST | `/proposals/:proposalId/execute` | `{ requestId }` | `execute()` |
 | POST | `/proposals/:proposalId/cancel` | — | `cancel()` |
+
+`inspect()` returns everything `describe()` does, plus a per-action
+`actions[]` array: the server-resolved `requiresConfirmation` /
+`authorizationRequired` (via `AccessGraph.resolveAction`, which folds in
+this service's Access Profile — not just each action's own declared
+`confirmation`/`authorization.required` flags), `categoryTrust`
+("reviewed" vs "declared", from the WoT adapter's category-trust
+provenance), and `blocked`/`blockedReason` for the one block condition
+this service can determine without side effects: a parameter schema node
+this codebase cannot validate (`type: "unsupported"`). It exists so a
+client can explain *why* an action requires what it requires, or can't be
+proposed at all, without creating and discarding a proposal just to find
+out. See `examples/execution-client/`'s "Accessible task inspector"
+section for the reference rendering, and
+`docs/audit-2026-09-22.md` item 3 for what has and hasn't been verified
+about it.
 
 A thrown error's `.code` maps to an HTTP status (`UNAUTHENTICATED` → 401,
 `FORBIDDEN` → 403, `UNKNOWN_DEVICE`/`UNKNOWN_PROPOSAL` → 404,

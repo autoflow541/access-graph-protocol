@@ -66,6 +66,16 @@ function call(method, path, { token, body } = {}) {
   assert.equal(missing.status, 404);
 }
 
+// --- inspect() over real HTTP: resolved per-action policy, not just the raw object
+{
+  const inspected = await call("GET", "/devices/lamp-01/inspect", { token: "good-token" });
+  assert.equal(inspected.status, 200);
+  const turnOn = inspected.body.actions.find((a) => a.id === "turn_on");
+  assert.equal(turnOn.authorizationRequired, true);
+  assert.equal(turnOn.blocked, false);
+  assert.equal(inspected.body.object.id, "lamp-01");
+}
+
 // --- Full lifecycle over real HTTP: describe -> propose -> confirm -> authorize -> execute
 const described = await call("GET", "/devices/lamp-01", { token: "good-token" });
 assert.equal(described.status, 200);
