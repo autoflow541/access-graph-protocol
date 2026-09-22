@@ -10,4 +10,6 @@ Do not treat recognized speech, gaze, hand tracking, a switch event, an AI-gener
 
 The WoT adapter never invokes forms or accepts credentials. Its default classification for unknown writes and device actions is medium risk with confirmation required. Implementers should replace that default only from trusted, explicit device metadata or a reviewed policy.
 
+For the `physical_safety`, `security`, `financial`, and `destructive` action categories, the WoT adapter enforces a policy floor (`adapters/wot/index.js`, `CATEGORY_RISK_FLOOR` / `CATEGORY_CONFIRMATION_FLOOR`): a source-declared `x-agp-risk` or `x-agp-confirmation` can raise the effective requirement, but can never lower it below the floor for that category. A device cannot self-declare a physical-safety action as low-risk or no-confirmation. This does not extend to the category label itself — `x-agp-category` remains source-declared, so a device that mislabels a dangerous action as `device_control` currently evades the floor. Closing that requires category classification from a reviewed or allowlisted source rather than the device itself; see `docs/capability-matrix.md` (Finding G) and `ROADMAP.md`.
+
 For the prototype, report security concerns privately to the project maintainer rather than publishing exploit details in a public issue.

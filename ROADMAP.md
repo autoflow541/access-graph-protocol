@@ -67,34 +67,40 @@ and the roadmap should say so rather than checking it off anyway.
       reuse an existing confirmation. Acceptance: a test that confirms
       one parameter value, then calls execute with a different value, and
       asserts it is rejected — not just that the "right" path works.
-- [ ] C: WoT state projection separates observed values from schema
+- [x] C: WoT state projection separates observed values from schema
       defaults and excludes write-only properties. Acceptance: a test
       Thing Description with a `default` on a property that has never
       been read reports that property as unknown/absent, not as the
       default value; a `writeOnly` property never appears in `state`.
-- [ ] D: WoT parameter schema translation preserves supported structures
+      Verified: `tests/wot-adapter-test.mjs`.
+- [x] D: WoT parameter schema translation preserves supported structures
       (objects/arrays, not just string/number/integer/boolean) and each
       parameter's real `required`-ness, and clearly rejects or flags
       schemas it can't represent instead of silently coercing them.
       Acceptance: a test with an unsupported schema type asserts the
       adapter either preserves enough structure to round-trip it or
       throws/flags it — never silently emits `type: "string"`.
-- [ ] E: Identifier generation is collision-safe. Acceptance: a test
+      Verified: `tests/wot-adapter-test.mjs`; `schema/access-graph.schema.json`
+      updated to allow the newly-honest `object`/`array`/`unsupported`
+      parameter types.
+- [x] E: Identifier generation is collision-safe. Acceptance: a test
       registers two source objects whose names differ only by case or
       punctuation and asserts both are present in the resulting graph
       under distinct ids, with the original source name preserved
-      somewhere on the object.
-- [ ] F: Authorization requirement reads per-form security and security
+      somewhere on the object. Verified: `tests/wot-adapter-test.mjs`.
+- [x] F: Authorization requirement reads per-form security and security
       requirement combinations, not only top-level `td.security`.
       Acceptance: a test TD with a form-level security override produces
       a different `authorizationRequired` result than the Thing-level
-      default would imply.
-- [ ] G: Source-declared `x-agp-risk` / `x-agp-confirmation` can only
+      default would imply. Verified: `tests/wot-adapter-test.mjs`.
+- [x] G: Source-declared `x-agp-risk` / `x-agp-confirmation` can only
       raise the effective risk/confirmation requirement relative to a
       separately-defined policy default, never lower it. Acceptance: a
       test TD that declares a `physical_safety`-category action as
       `x-agp-risk: "none"` still resolves to at least the policy's floor
-      for that category.
+      for that category. Verified: `tests/wot-adapter-test.mjs`. Known
+      remaining gap: the category itself is still source-declared — see
+      `docs/capability-matrix.md`, Finding G.
 
 **M2 — Execution service and browser reference workflow**
 - [ ] One execution integration chosen and implemented (`node-wot` for

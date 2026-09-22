@@ -1,6 +1,6 @@
 export const AGP_VERSION = "0.1";
 
-const RISK_ORDER = ["none", "low", "medium", "high", "critical"];
+export const RISK_ORDER = ["none", "low", "medium", "high", "critical"];
 
 export class AccessGraph {
   constructor(objects = []) {

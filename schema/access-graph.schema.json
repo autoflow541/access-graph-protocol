@@ -48,13 +48,20 @@
       "type": "object",
       "required": ["type"],
       "properties": {
-        "type": { "enum": ["string", "number", "integer", "boolean"] },
+        "type": { "enum": ["string", "number", "integer", "boolean", "object", "array", "unsupported"] },
         "description": { "type": "string" },
         "minimum": { "type": "number" },
         "maximum": { "type": "number" },
         "unit": { "type": "string" },
         "enum": { "type": "array" },
-        "required": { "type": "boolean" }
+        "required": { "type": "boolean" },
+        "items": { "$ref": "#/$defs/parameter" },
+        "properties": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/parameter" }
+        },
+        "unsupported": { "type": "boolean" },
+        "sourceSchema": { "type": "object" }
       },
       "additionalProperties": true
     },

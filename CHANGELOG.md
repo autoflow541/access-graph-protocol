@@ -1,5 +1,55 @@
 # Changelog
 
+## 0.1.4 — 2026-09-22
+
+Fixes the five remaining audit findings (C–G) from 0.1.3's source
+inspection, closing every open item except one documented, narrower gap.
+`adapters/wot/index.js` is substantially rewritten; `sdk/javascript/agp.js`
+gains one purely-additive export (`RISK_ORDER`) so the adapter and SDK
+share one risk-ordering source of truth.
+
+- **Fixed (C)**: WoT state projection no longer uses a schema `default` as
+  a stand-in for an observed value — only a supplied live value or a WoT
+  `const` (definitionally always known) counts as state. A property with
+  only a `default` is correctly absent from `state` rather than invented.
+  `writeOnly` properties are now always excluded from state, in both
+  `thingDescriptionToAgp` and the `thingDescriptionToGraph` decomposition.
+- **Fixed (D)**: parameter schema translation (`schemaParameter`,
+  `inputParameters`) now preserves `object`/`array` structure and each
+  property's real `required`-ness (read from the input schema's own
+  `required` array, not hardcoded `true`). A schema shape this adapter
+  can't represent is flagged `type: "unsupported", unsupported: true` with
+  the original schema kept under `sourceSchema`, never silently coerced to
+  `"string"`. `schema/access-graph.schema.json`'s parameter `type` enum
+  extended accordingly (additive; existing string/number/integer/boolean
+  parameters remain valid).
+- **Fixed (E)**: every adapter entry point (`thingDescriptionToAgp`,
+  `thingDescriptionToGraph`) now uses a per-call id allocator
+  (`createIdAllocator`) that disambiguates a colliding `stableId()` output
+  (e.g. two property names that only differ by case/punctuation produce
+  `write_x` and `write_x-2`, not a silent overwrite in `AccessGraph`). The
+  original source name is preserved on `metadata.wot_name`.
+- **Fixed (F)**: authorization requirement (`requiresAuthorization`) now
+  reads a form-level `security` override (WoT TD §5.3.4) per property/
+  action, falling back to the Thing-level default only when no form
+  override is declared — previously only the Thing-level `td.security`
+  was read.
+- **Fixed (G), with a documented remaining gap**: `x-agp-risk` /
+  `x-agp-confirmation` for `physical_safety` / `security` / `financial` /
+  `destructive` categories can now only raise the effective risk/
+  confirmation requirement, never lower it below a policy floor
+  (`CATEGORY_RISK_FLOOR`, `CATEGORY_CONFIRMATION_FLOOR`) — the same
+  trust-model gap MCP's own tool-annotations spec documents for its hints.
+  **Not closed**: the category itself (`x-agp-category`) is still
+  source-declared, so a device could still mislabel a dangerous action to
+  dodge the floor; closing that needs category classification from a
+  reviewed/allowlisted source, not a client-side adapter — tracked in
+  `ROADMAP.md`.
+- Every fix above has a corresponding test in `tests/wot-adapter-test.mjs`,
+  verified both by the test suite and by direct inspection of the
+  generated AGP objects. `docs/capability-matrix.md` and `ROADMAP.md`
+  updated to reflect all seven audit findings (A–G) as addressed.
+
 ## 0.1.3 — 2026-09-22
 
 Source-inspection audit and planning docs prompted by an external research

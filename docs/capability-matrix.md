@@ -11,11 +11,11 @@ behavior changes — it is a source-of-truth check, not a marketing page.
 |---|---|---|---|
 | Reads native semantics without owning execution | Yes — scans DOM/ARIA, never dispatches events | Yes — reads a Thing Description, never calls a Thing's forms | N/A — presentation/session layer over the other two |
 | Produces an AGP object with role/state/actions | Yes | Yes, plus a graph decomposition (`thingDescriptionToGraph`) into property sub-objects | Consumes an existing AGP object; produces a view model |
-| Risk/confirmation defaults | Not derived from source; caller sets it | Read from `x-agp-risk` / `x-agp-confirmation` extensions on the TD **with no trust boundary from AGP's own policy** — see Finding G below | Reads whatever the object already carries |
-| Authorization requirement | Not modeled | Derived from `td.security` **only at the Thing (top) level** — per-form overrides and security-requirement combinations are not read — see Finding F | Gated in `SpecsActionSession`, but confirmation was not bound to specific parameters until the fix in this release — see Finding B |
-| State vs. defaults vs. write-only | N/A (DOM state is always "current") | **Not separated** — `property.default` is used as a state value when no live value is supplied, and `writeOnly` properties are not excluded from state — see Finding C | Passes through whatever the WoT adapter produced |
-| Parameter schema fidelity | N/A | Unsupported JSON Schema types silently become `"string"`; every parameter is marked `required: true` regardless of the source schema — see Finding D | N/A |
-| Identifier collisions | Not addressed (single scan per page) | `stableId()` case/punctuation-folds names with **no collision detection**; a second object registered under a colliding id silently overwrites the first in `AccessGraph` — see Finding E | N/A |
+| Risk/confirmation defaults | Not derived from source; caller sets it | Read from `x-agp-risk` / `x-agp-confirmation` extensions on the TD, but for `physical_safety` / `security` / `financial` / `destructive` categories a source-declared value can only raise risk/confirmation, never lower it below the category's policy floor (Finding G, fixed) — the category itself is still source-declared, which is a documented, narrower remaining gap | Reads whatever the object already carries |
+| Authorization requirement | Not modeled | Derived per-affordance: a form-level `security` override (WoT TD §5.3.4) takes precedence over the Thing-level default for that specific property/action (Finding F, fixed) | Gated in `SpecsActionSession`, with confirmation bound to immutable parameters (Finding B, fixed) |
+| State vs. defaults vs. write-only | N/A (DOM state is always "current") | Separated: only a supplied live value or a WoT `const` counts as known state; a `default` with no observation is correctly absent (not invented), and `writeOnly` properties are always excluded from state (Finding C, fixed) | Passes through whatever the WoT adapter produced |
+| Parameter schema fidelity | N/A | Object/array structure and each parameter's real `required`-ness are preserved; a schema this adapter can't represent is flagged `unsupported: true` with the original schema kept under `sourceSchema`, never silently coerced to `"string"` (Finding D, fixed) | N/A |
+| Identifier collisions | Not addressed (single scan per page) | Each entry-point call uses a per-call id allocator that disambiguates a colliding `stableId()` output (e.g. `write_x`, `write_x-2`); the original source name is preserved on the action's `metadata.wot_name` (Finding E, fixed) | N/A |
 | Tested | `tests/aria-adapter-test.mjs` | `tests/wot-adapter-test.mjs` | `tests/specs-adapter-test.mjs`, `tests/lens-*-test.mjs` |
 
 ## Clients
@@ -37,17 +37,15 @@ behavior changes — it is a source-of-truth check, not a marketing page.
 
 | # | Finding | Status |
 |---|---|---|
-| A | Lens authorization is simulated (`authorize(true)` → `authorizationFinished` → `provideAuthorization`); not visibly labeled as simulated in the UI | **Fixed this release** — `AgpConfirmationAuthorizationGate` now prefixes the authorization prompt with "(Simulated)" and the label reads "Simulate authorization on paired device" |
-| B | `SpecsActionSession.request()` did not bind parameters; `execute(parameters)` could supply different parameters than what was confirmed | **Fixed this release** — see `docs/adr-0001-wot-reuse.md` is unrelated; see the "Confirmation binds to parameters" section of `CHANGELOG.md` and `tests/specs-adapter-test.mjs` |
-| C | WoT state projection conflates schema defaults with observed values, and does not exclude write-only properties | **Not fixed. Tracked in `ROADMAP.md` with acceptance criteria.** |
-| D | WoT parameter schema translation silently drops unsupported types to `"string"` and marks everything `required: true` | **Not fixed. Tracked in `ROADMAP.md`.** |
-| E | `stableId()` has no collision detection; colliding ids silently overwrite each other in `AccessGraph` | **Not fixed. Tracked in `ROADMAP.md`.** |
-| F | Authorization requirement is derived only from top-level `td.security`, ignoring per-form overrides and security-requirement combinations | **Not fixed. Tracked in `ROADMAP.md`.** |
-| G | Source-declared `x-agp-risk` / `x-agp-confirmation` have no trust boundary from AGP's own policy — a device can self-declare a dangerous action as low-risk | **Not fixed. Tracked in `ROADMAP.md` — same trust-model gap MCP's tool-annotations spec documents for its own hints; see `docs/prior-art-and-positioning.md`.** |
+| A | Lens authorization is simulated (`authorize(true)` → `authorizationFinished` → `provideAuthorization`); not visibly labeled as simulated in the UI | **Fixed** — the authorization prompt, caption, and spoken announcement are all prefixed "(Simulated)" in both `AgpSpecsSessionController.broadcastPrompt` (Lens) and `examples/smart-device/app.js`'s `showGate`, not only the button label |
+| B | `SpecsActionSession.request()` did not bind parameters; `execute(parameters)` could supply different parameters than what was confirmed | **Fixed** — `request()` validates and immutably binds parameters; `execute()` runs the bound proposal and rejects a mismatched substitution. `tests/specs-adapter-test.mjs` |
+| C | WoT state projection conflates schema defaults with observed values, and does not exclude write-only properties | **Fixed** — `adapters/wot/index.js` `readValue`/`isStateReadable`. `tests/wot-adapter-test.mjs` ("Finding C") |
+| D | WoT parameter schema translation silently drops unsupported types to `"string"` and marks everything `required: true` | **Fixed** — `adapters/wot/index.js` `schemaParameter`/`inputParameters`; `schema/access-graph.schema.json`'s parameter `type` enum extended to include `object`/`array`/`unsupported`. `tests/wot-adapter-test.mjs` ("Finding D") |
+| E | `stableId()` has no collision detection; colliding ids silently overwrite each other in `AccessGraph` | **Fixed** — `adapters/wot/index.js` `createIdAllocator`, used per entry-point call; original source name preserved on `metadata.wot_name`. `tests/wot-adapter-test.mjs` ("Finding E") |
+| F | Authorization requirement is derived only from top-level `td.security`, ignoring per-form overrides and security-requirement combinations | **Fixed** — `adapters/wot/index.js` `requiresAuthorization`/`formSecuritySchemes` now reads per-affordance form overrides. `tests/wot-adapter-test.mjs` ("Finding F") |
+| G | Source-declared `x-agp-risk` / `x-agp-confirmation` have no trust boundary from AGP's own policy — a device can self-declare a dangerous action as low-risk | **Fixed for the risk/confirmation value itself** — `adapters/wot/index.js` `CATEGORY_RISK_FLOOR`/`CATEGORY_CONFIRMATION_FLOOR`/`riskFor`/`confirmationFor`: a source can raise but never lower risk/confirmation for `physical_safety`/`security`/`financial`/`destructive` categories. **Not fixed**: the category itself (`x-agp-category`) is still source-declared, so a device could still mislabel a dangerous action to dodge the floor — closing that needs category classification from a reviewed/allowlisted source, tracked in `ROADMAP.md`, not solved by a client-side adapter. `tests/wot-adapter-test.mjs` ("Finding G") |
 
-C–G were deliberately left unfixed in this release. The instruction that
-produced this audit was explicit: implement one focused change (B, plus
-the labeling fix for A) and add tests, rather than touching the
-already-tested WoT adapter's state/schema/identifier/security logic in the
-same pass. Fixing C–G is real, necessary follow-up work, not lower-priority
-busywork — `ROADMAP.md` sequences it ahead of any new adapter.
+All seven findings from the source-inspection audit are addressed as of
+this release, with the one documented exception noted under G (category
+trust). Each fix has a corresponding regression test — see
+`tests/wot-adapter-test.mjs` and `tests/specs-adapter-test.mjs`.
