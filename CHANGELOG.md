@@ -1,12 +1,49 @@
 # Changelog
 
-## Unreleased — proposal validation and audit
+## 0.1.11 — 2026-09-22
+
+Fixes a real UI/gate confirmation-policy mismatch flagged (but not yet
+fixed) in `docs/audit-2026-09-22.md`: `AccessGraph.resolveAction()` (the
+actual gate `SpecsActionSession.request()` calls) and `renderControls()`
+(what `toSpecsView`'s per-action `cue` and the SPECS panel's button
+labels are built from) used to be two independently-maintained
+confirmation computations, and they had drifted — `renderControls` never
+checked whether an action's `category` was in the Access Profile's
+`interaction.confirmation_for` list, only risk. Verified live: an action
+whose only confirmation trigger was its category showed
+`resolveAction(...).requiresConfirmation === true` but
+`renderControls(...).actions[0].confirmation === false` before the fix.
+The actual safety gate was never bypassed (resolveAction was already
+correct), but a user had no advance warning a confirmation step was
+coming.
+
+- **Fixed**: `sdk/javascript/agp.js` extracts one `requiresConfirmationFor(action, profile)`
+  function used by both `AccessGraph.resolveAction()` and
+  `renderControls()`, so the actual gate and the presentation layer
+  cannot drift apart again. `tests/smoke-test.mjs` extended with a
+  regression test using a category-only (not risk-triggered) confirmation
+  case, which the existing fixtures didn't exercise since they all also
+  had high risk or an explicit `confirmation: true`.
+
+## 0.1.10 — 2026-09-22
+
+Applied from a patch built independently against 0.1.9 (`df8b8ba`) by
+another session, after its own review, audit, and testing. Reviewed
+line-by-line and independently re-verified (`npm test`, all 7 suites)
+before merging — see `docs/audit-2026-09-22.md` for the full audit.
 
 - Enforce nested numeric bounds/enums and reject undeclared parameters.
 - Show target and parameter values in confirmation; support explicit top-level sensitive-field redaction.
 - Add opt-in proposal expiry with a testable clock and structured expiration code.
 - Add end-to-end adapter/session regression coverage, engineering audit, and prioritized pilot plan.
 - Refresh generated Lens adapter source; Lens compilation and hardware testing remain unverified.
+- Also included: `parametersMatch()` used to only sort top-level
+  parameter keys before comparing, so a resubmission with
+  semantically-identical but differently-ordered *nested* object keys
+  would have been wrongly rejected as not matching the confirmed
+  proposal — noticed during review while tracing the new nested-object
+  test cases; now compares a fully canonicalized (recursively key-sorted)
+  form.
 
 ## 0.1.9 — 2026-09-22
 

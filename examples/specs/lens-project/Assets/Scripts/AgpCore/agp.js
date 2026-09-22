@@ -44,18 +44,33 @@ export class AccessGraph {
     const action = object.actions.find((candidate) => candidate.id === actionId);
     if (!action) throw new Error(`Unknown action ${actionId} for ${objectId}`);
 
-    const risk = action.risk ?? "none";
-    const profileConfirm = profile?.interaction?.confirmation_for ?? [];
-    const riskRequiresConfirmation = RISK_ORDER.indexOf(risk) >= RISK_ORDER.indexOf("high");
-    const categoryRequiresConfirmation = action.category && profileConfirm.includes(action.category);
-
     return {
       object: structuredCloneSafe(object),
       action: structuredCloneSafe(action),
-      requiresConfirmation: Boolean(action.confirmation || riskRequiresConfirmation || categoryRequiresConfirmation),
+      requiresConfirmation: requiresConfirmationFor(action, profile),
       authorizationRequired: Boolean(action.authorization?.required)
     };
   }
+}
+
+// The one place "does this action require confirmation" is decided, used
+// by both the actual gate (AccessGraph.resolveAction, which
+// SpecsActionSession.request() calls) and the presentation layer
+// (renderControls, which toSpecsView's per-action `cue` and the SPECS
+// panel's button labels are built from). These used to be two separate,
+// independently-maintained computations, and they had already drifted:
+// renderControls checked risk but never checked whether the action's
+// category was in the Access Profile's confirmation_for list, so a
+// category-triggered confirmation gate could be silently invisible in the
+// UI while still correctly enforced by resolveAction — the safety gate
+// itself was never bypassed, but a user (or a screen reader reading the
+// cue) had no warning a confirmation step was coming.
+function requiresConfirmationFor(action, profile) {
+  const risk = action.risk ?? "none";
+  const profileConfirm = profile?.interaction?.confirmation_for ?? [];
+  const riskRequiresConfirmation = RISK_ORDER.indexOf(risk) >= RISK_ORDER.indexOf("high");
+  const categoryRequiresConfirmation = Boolean(action.category && profileConfirm.includes(action.category));
+  return Boolean(action.confirmation || riskRequiresConfirmation || categoryRequiresConfirmation);
 }
 
 export function summarizeObject(object, profile = {}) {
@@ -83,7 +98,7 @@ export function renderControls(object, profile = {}) {
       id: action.id,
       label: action.label ?? humanize(action.id),
       risk: action.risk ?? "none",
-      confirmation: Boolean(action.confirmation || ["high", "critical"].includes(action.risk))
+      confirmation: requiresConfirmationFor(action, profile)
     })),
     presentation: {
       largeControls: Boolean(large),
