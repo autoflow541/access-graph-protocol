@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.1.24: 2026-09-23
+
+README rewrite: the actual center of gravity of this repo, not just a device protocol.
+
+- The opening pitch only described "software, devices, robots, and
+  environments," with no mention of the four AI-driven media adapters
+  built this session (camera, webpage screenshot, PDF, WCAG scan) or the
+  reuse claim that's the actual evidence behind them. Added a paragraph
+  to "Why this exists" stating that claim directly: the same
+  `ExecutionService` and `negotiateCapabilities()`, built once for a
+  thermostat, run unmodified across six media types, two backed by
+  already-deployed production services, not demos built for this repo.
+- New "Beyond devices: camera, web, and document adapters" section,
+  giving `adapters/vision-assistant/`, `adapters/web-vision/`,
+  `adapters/web-scan/`, and `adapters/pdf-remediation/` the same
+  narrative depth the ARIA/WoT/SPECS section already had, instead of
+  leaving them as one-line bullets in the repository list.
+- "Run it" updated: `npm ci` (the repo now has two deliberate dependency
+  exceptions, `@node-wot/core` and `@anthropic-ai/sdk`), `npm run
+  check:conformance`, `examples/vision-assistant/`'s service script, and
+  an honest list of the four `service:dev*` scripts that have no
+  dedicated browser demo yet (curl-only).
+- "Status" updated to list all six proven media types instead of the
+  original four.
+- Fixed an internal inconsistency this rewrite would otherwise have
+  introduced: the new "Why this exists" paragraph first said "five"
+  media types while the pre-existing Repository bullets (written
+  earlier this session) already established "sixth" for
+  `adapters/web-scan/`. Reconciled to six, consistent with
+  `ROADMAP.md`/`NEXT.md`'s existing numbering (web via ARIA counts as
+  the first).
+- No code changed; all 16 test suites still pass.
+
 ## 0.1.23: 2026-09-22
 
 Scenario runner: the last item from the original five-item audit priority list.

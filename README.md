@@ -1,7 +1,7 @@
 # Access Graph Protocol (AGP)
 
 [![test](https://github.com/autoflow541/access-graph-protocol/actions/workflows/test.yml/badge.svg)](https://github.com/autoflow541/access-graph-protocol/actions/workflows/test.yml)
-[![npm version](https://img.shields.io/badge/version-0.1.23-blue)](CHANGELOG.md)
+[![npm version](https://img.shields.io/badge/version-0.1.24-blue)](CHANGELOG.md)
 [![license: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![status: experimental](https://img.shields.io/badge/status-experimental-orange)](ROADMAP.md)
 
@@ -20,6 +20,8 @@ AGP does **not** replace ARIA, operating-system accessibility APIs, Matter, W3C 
 Accessibility is fragmented across browsers, operating systems, assistive technology, smart devices, and physical systems. Each platform has useful semantics, but there is no single accessibility-oriented interaction model that spans a web button, an application control, a kiosk, a thermostat, and a robot action.
 
 AGP explores whether those systems can be normalized into one small semantic graph that an assistive client can consume.
+
+There is a second, related claim this repo also tests: that an AI-driven accessibility layer does not have to be locked to one medium. The same execution model and safety spine (proposal → confirmation → authorization → dispatch, risk-floored categories, capability negotiation) now runs, unmodified, across six unrelated media types: a website (via ARIA), a WoT smart device, a live camera feed ("what am I looking at?", not tied to one glasses vendor), a webpage read from a screenshot alone (no ARIA cooperation required this time), a PDF document, and a website's own WCAG scan, the last two backed by Auto-Flow's own already-deployed production services rather than demos built for this repo. The reuse is the actual evidence, not the adapter count: `ExecutionService` and `negotiateCapabilities()` (`sdk/javascript/agp.js`) were built once, for a thermostat, and never changed to add the other five. See `adapters/vision-assistant/`, `adapters/web-vision/`, `adapters/web-scan/`, and `adapters/pdf-remediation/` below.
 
 ## Core model
 
@@ -83,10 +85,12 @@ A separate **Access Profile** describes functional interaction preferences witho
 
 ## Run it
 
-Requires a recent Node.js version for tests. The browser demos have no package dependencies.
+Requires a recent Node.js version for tests (`npm ci` first: the SDK/adapters stay dependency-free, but `service/` now has two deliberate exceptions, `@node-wot/core` and `@anthropic-ai/sdk`, both explained in `service/README.md`). The browser demos themselves load no package dependencies.
 
 ```bash
+npm ci
 npm test
+npm run check:conformance   # the scenario runner's machine-readable pass/fail report
 python -m http.server 8080
 ```
 
@@ -96,17 +100,25 @@ Then open:
 - `http://localhost:8080/examples/drone/`
 - `http://localhost:8080/examples/smart-device/`
 
-`examples/execution-client/` is different from the three above: it is a
-real network client, not an in-process simulation. It requires the
-execution service running separately:
+`examples/execution-client/` and `examples/vision-assistant/` are real
+network clients, not in-process simulations: each needs its own
+execution service running first, then the same static server:
 
 ```bash
-npm run service:dev
-python -m http.server 8080   # in another terminal
+npm run service:dev            # examples/execution-client/, port 8787, WoT thermostat, simulated
+npm run service:dev:vision     # examples/vision-assistant/, port 8791
+python -m http.server 8080     # in another terminal
 ```
 
-Then open `http://localhost:8080/examples/execution-client/`. See
-`service/README.md`.
+Then open `http://localhost:8080/examples/execution-client/` (or
+`examples/vision-assistant/`). See `service/README.md`.
+
+The other four `service:dev*` scripts (`service:dev:wot`, real node-wot
+backend; `service:dev:pdf`, real PDF remediation backend;
+`service:dev:web-scan`, real WCAG scan backend; `service:dev:web-vision`,
+webpage screenshots) have no dedicated browser demo yet: exercise them
+with `curl` against their HTTP API, the same one every other execution
+service exposes (see `service/README.md`'s HTTP surface table).
 
 ## ARIA adapter
 
@@ -126,6 +138,17 @@ The WoT adapter maps Thing Description properties, actions, events, and security
 
 The SPECS adapter converts the same AGP object and Access Profile into a world-panel view model and a gated action session suitable for a Lens. It supports hand/voice selection, captions, speech, large text, high contrast, reduced motion, and one-step flows at the semantic layer, and binds an action's parameters into an immutable, deep-frozen proposal at request time: confirming an action confirms the exact parameters that will run, not just the action id. `examples/specs/lens-project/` builds on this with real Lens Studio TypeScript source for Lens Studio 5.22+ / SPECS 27, Spectacles UI Kit, and the Spectacles Interaction Kit; it still needs on-device testing: see `examples/specs/lens-project/SETUP.md`.
 
+## Beyond devices: camera, web, and document adapters
+
+Four adapters apply the same object/action/risk model to media that have nothing to do with device control. All four keep AGP's core distinction between *informational* actions (no risk, no confirmation, so a person can ask constantly without a dialog interrupting every question) and actions that change something (risk-appropriate confirmation, matching the read_/write_ split `adapters/wot/index.js` already established):
+
+- **`adapters/vision-assistant/`**: `describe_scene` ("what am I looking at?") and `read_text`, sent through a pluggable describer, simulated by default and real (an actual Anthropic API call) when `ANTHROPIC_API_KEY` is set. Not tied to one camera vendor; works with any source that can produce a still frame.
+- **`adapters/web-vision/`**: the same pattern applied to a webpage screenshot instead of a camera. `describe_page` and `find_element` (which takes a `query`, e.g. "find the submit button") are dispatched by the *exact same executor* (`service/vision-executor.mjs`) built for the camera adapter, generalized once to read `metadata.describerMode` off any action rather than hardcoding two action ids. Deliberately does not read the page's DOM or ARIA tree: `adapters/aria/index.js` already covers pages that cooperate; this covers ones that never will.
+- **`adapters/web-scan/`**: `check_accessibility`, calling Auto-Flow's already-deployed WCAG scanner (Playwright + axe-core) over real HTTP. Honestly labeled `source.type: "structured_api"`, not `"ai_inference"`, since axe-core is a deterministic rule engine, not a judgment call, even though the real service's response also carries an AI-generated review alongside the rule results.
+- **`adapters/pdf-remediation/`**: `check_accessibility` and `analyze` are informational; `remediate` is `risk: "low"` with confirmation required, since it's an AI making judgment calls (heading levels, alt text, reading order, table structure) that produce a new document. All three call Auto-Flow's already-deployed PDF remediation service over real HTTP.
+
+`service/scenario-runner.mjs` provides reproducible fault injection (authorization denial, stale state, duplicate request, malformed schema, dispatch timeout) against any of these, or against `service/execution-service.js` directly, with a machine-readable pass/fail report; `npm run check:conformance` runs it against the reference thermostat fixture and is wired into CI.
+
 ## Design principles
 
 1. **Meaning before presentation.** Describe capability, not a particular UI.
@@ -138,7 +161,7 @@ The SPECS adapter converts the same AGP object and Access Profile into a world-p
 
 AGP 0.1 is an independent experimental prototype, not an approved standard and not affiliated with W3C, WHATWG, the Connectivity Standards Alliance, or any other standards body.
 
-The current proof applies one Access Profile across a website, a WoT smart device, a simulated drone, and a SPECS-oriented XR presentation with real Lens Studio source. Native on-device testing and OS accessibility adapters remain future work.
+The current proof applies one Access Profile, one execution model, and (where applicable) one capability-negotiation function, unmodified, across: a website, a WoT smart device (both simulated and, via `service/wot-executor.mjs`, a real `node-wot` backend), a simulated drone, a SPECS-oriented XR presentation with real Lens Studio source, a live camera feed, a webpage read from a screenshot alone, a PDF document, and a website's own WCAG scan, the last two backed by real, already-deployed production services rather than demos built for this repo. Native on-device testing, OS accessibility adapters, and one real physical device connected end to end remain future work.
 
 ## License
 
