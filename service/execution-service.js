@@ -175,7 +175,11 @@ export class ExecutionService {
   /** A dedicated, separate confirmation step: see adapters/specs/index.js for why this must stay distinct from authorize(). */
   confirm({ callerToken, proposalId, accepted }) {
     const proposal = this._requireProposal(callerToken, proposalId);
-    if (!accepted) {
+    // Strict `=== true`, not truthy: a client bug or a malformed request
+    // body (e.g. `accepted: "false"`, a JSON string, which is truthy)
+    // must never read as consent. Matches provideAuthorization()'s
+    // existing `result !== true` check in adapters/specs/index.js.
+    if (accepted !== true) {
       this._proposals.delete(proposalId);
       return { proposalId, status: "cancelled" };
     }
@@ -211,10 +215,21 @@ export class ExecutionService {
    * not guess.
    */
   async execute({ callerToken, proposalId, requestId }) {
+    // Authenticate before anything else: the requestId cache below must
+    // never be checked (let alone return a cached outcome) for a caller
+    // who hasn't even proven they're allowed to use this service. This
+    // also closes a second gap the naive order had: the cache key used
+    // to be requestId alone, shared across every caller, so two
+    // different callers who happened to pick the same requestId string
+    // (or one caller's request smuggled in without a valid token) could
+    // read another caller's cached outcome. The key now includes
+    // callerToken, so requestId only ever needs to be unique per caller.
+    this._authenticate(callerToken);
     if (!requestId) throw serviceError("MISSING_REQUEST_ID", "execute() requires a client-supplied requestId for duplicate-dispatch protection");
     this._sweepExpiredRequests();
 
-    const cached = this._requestLog.get(requestId);
+    const requestKey = `${callerToken}:${requestId}`;
+    const cached = this._requestLog.get(requestKey);
     if (cached) return cached.outcome;
 
     const proposal = this._requireProposal(callerToken, proposalId);
@@ -231,7 +246,7 @@ export class ExecutionService {
     this._proposals.delete(proposalId);
 
     const outcome = await this._dispatch(proposal);
-    this._requestLog.set(requestId, { outcome, expiresAt: this.now() + this.requestRetentionMs });
+    this._requestLog.set(requestKey, { outcome, expiresAt: this.now() + this.requestRetentionMs });
     return outcome;
   }
 

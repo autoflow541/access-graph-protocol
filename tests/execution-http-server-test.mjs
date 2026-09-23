@@ -124,4 +124,25 @@ const malformed = await fetch(`${base}/devices/lamp-01/actions/turn_on/propose`,
 assert.equal(malformed.status, 400);
 
 server.close();
-console.log("Execution HTTP server test passed (real sockets: auth, lifecycle, dedup, staleness)");
+
+// --- An oversized request body is rejected (413) rather than buffered without limit, over a real socket
+{
+  const tinyLimitServer = createExecutionHttpServer(service, { maxBodyBytes: 1024 });
+  await new Promise((resolve) => tinyLimitServer.listen(0, "127.0.0.1", resolve));
+  const tinyBase = `http://127.0.0.1:${tinyLimitServer.address().port}`;
+
+  const oversized = await fetch(`${tinyBase}/devices/lamp-01/actions/turn_on/propose`, {
+    method: "POST",
+    headers: { Authorization: "Bearer good-token", "Content-Type": "application/json" },
+    body: JSON.stringify({ parameters: { padding: "x".repeat(5000) }, stateVersion: 1 })
+  });
+  assert.equal(oversized.status, 413);
+  assert.equal((await oversized.json()).code, "PAYLOAD_TOO_LARGE");
+
+  // A body within the limit still works normally against the same server.
+  const withinLimit = await fetch(`${tinyBase}/devices/lamp-01`, { headers: { Authorization: "Bearer good-token" } });
+  assert.equal(withinLimit.status, 200);
+
+  tinyLimitServer.close();
+}
+console.log("Execution HTTP server test passed (real sockets: auth, lifecycle, dedup, staleness, body size limit)");

@@ -9,14 +9,16 @@ import { createPdfDocumentObject } from "../adapters/pdf-remediation/index.js";
 import { createPdfExecutor } from "./pdf-executor.mjs";
 import { ExecutionService } from "./execution-service.js";
 import { createExecutionHttpServer } from "./http-server.js";
+import { resolveDevToken } from "./dev-token.mjs";
 
 const object = createPdfDocumentObject({ id: "uploaded-document" });
 const graph = new AccessGraph([object]);
 
+const token = resolveDevToken();
 const service = new ExecutionService({
   graph,
   profile: { agp_profile: "0.1", interaction: { confirmation_for: ["document_processing"] } },
-  allowedCallers: new Set([process.env.AGP_DEV_TOKEN || "dev-token"]),
+  allowedCallers: new Set([token]),
   executor: createPdfExecutor(),
   // remediate makes a real AI call (visual review) on top of the
   // structural rewrite; the default 10s dispatchTimeoutMs is tuned for a
@@ -27,11 +29,10 @@ const service = new ExecutionService({
 
 const server = createExecutionHttpServer(service, { corsOrigin: "*" });
 const port = Number(process.env.PORT) || 8792;
-server.listen(port, () => {
-  const token = process.env.AGP_DEV_TOKEN || "dev-token";
+server.listen(port, "127.0.0.1", () => {
   const backend = process.env.AGP_PDF_SERVICE_URL || "https://pdf.auto-flow.co";
-  console.log(`AGP pdf-remediation service listening on http://localhost:${port}`);
+  console.log(`AGP pdf-remediation service listening on http://127.0.0.1:${port} (localhost only)`);
   console.log(`Dispatching to: ${backend}`);
-  console.log(`Caller token: ${token} (set AGP_DEV_TOKEN to change it)`);
-  console.log(`Try: curl -H "Authorization: Bearer ${token}" http://localhost:${port}/devices/uploaded-document`);
+  console.log(`Caller token: ${token} (set AGP_DEV_TOKEN to pin it)`);
+  console.log(`Try: curl -H "Authorization: Bearer ${token}" http://127.0.0.1:${port}/devices/uploaded-document`);
 });

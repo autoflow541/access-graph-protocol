@@ -10,17 +10,22 @@ export class AccessGraph {
 
   register(object) {
     assertBasicObject(object);
+    if (this.objects.has(object.id)) {
+      throw new Error(`AGP object id already registered: ${object.id}. Use updateState() to change an existing object, or route generated ids through createIdAllocator() to avoid collisions.`);
+    }
     const normalized = structuredCloneSafe(object);
     normalized.agp ??= AGP_VERSION;
     normalized.state ??= {};
     normalized.actions ??= [];
     normalized.source ??= { type: "native_agp", confidence: 1 };
+    assertValidActions(normalized);
     this.objects.set(normalized.id, normalized);
     return normalized;
   }
 
   get(id) {
-    return this.objects.get(id) ?? null;
+    const object = this.objects.get(id);
+    return object ? structuredCloneSafe(object) : null;
   }
 
   list() {
@@ -68,7 +73,13 @@ export class AccessGraph {
 function requiresConfirmationFor(action, profile) {
   const risk = action.risk ?? "none";
   const profileConfirm = profile?.interaction?.confirmation_for ?? [];
-  const riskRequiresConfirmation = RISK_ORDER.indexOf(risk) >= RISK_ORDER.indexOf("high");
+  const riskIndex = RISK_ORDER.indexOf(risk);
+  // An unrecognized risk value (indexOf === -1) must not read as "below
+  // high": register() now rejects this at write time (assertValidActions),
+  // but this is the fail-conservative backstop for any action object that
+  // reaches this function some other way. Treat it the same as the
+  // highest known risk rather than the lowest.
+  const riskRequiresConfirmation = riskIndex === -1 || riskIndex >= RISK_ORDER.indexOf("high");
   const categoryRequiresConfirmation = Boolean(action.category && profileConfirm.includes(action.category));
   return Boolean(action.confirmation || riskRequiresConfirmation || categoryRequiresConfirmation);
 }
@@ -179,6 +190,28 @@ function assertBasicObject(object) {
     if (!object[key]) throw new Error(`AGP object is missing required field: ${key}`);
   }
   if (object.agp && object.agp !== AGP_VERSION) throw new Error(`Unsupported AGP version: ${object.agp}`);
+}
+
+// Rejects at registration time, not at the first confirmation check: an
+// action with a risk value outside RISK_ORDER (a typo, or a value from a
+// future/unreleased AGP version) must not silently reach
+// requiresConfirmationFor(), where an unrecognized value's indexOf()
+// would be -1 and previously read as "less risky than every known
+// level," the opposite of what an unknown risk should mean. Also rejects
+// duplicate action ids within one object, since resolveAction() finds by
+// id and a duplicate would make the second action permanently
+// unreachable.
+function assertValidActions(object) {
+  const seenActionIds = new Set();
+  for (const action of object.actions) {
+    if (action.risk !== undefined && !RISK_ORDER.includes(action.risk)) {
+      throw new Error(`AGP action "${action.id}" on "${object.id}" has an unrecognized risk value: ${action.risk}. Expected one of: ${RISK_ORDER.join(", ")}.`);
+    }
+    if (seenActionIds.has(action.id)) {
+      throw new Error(`AGP object "${object.id}" has a duplicate action id: ${action.id}`);
+    }
+    seenActionIds.add(action.id);
+  }
 }
 
 // Case/punctuation folding in an adapter's own id-generation (WoT's

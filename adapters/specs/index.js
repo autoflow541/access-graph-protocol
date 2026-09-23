@@ -110,7 +110,10 @@ export class SpecsActionSession {
 
     this.confirm = (accepted) => {
       requirePending();
-      if (!accepted) {
+      // Strict `=== true`, matching provideAuthorization()'s `result !==
+      // true` below: a truthy non-boolean (e.g. the string "false") must
+      // never read as consent.
+      if (accepted !== true) {
         pendingProposal = null;
         return { status: "cancelled", message: "Action cancelled." };
       }

@@ -13,7 +13,8 @@ const STATUS_BY_CODE = {
   STALE_STATE: 409,
   NOT_READY: 409,
   PROPOSAL_EXPIRED: 410,
-  MISSING_REQUEST_ID: 400
+  MISSING_REQUEST_ID: 400,
+  PAYLOAD_TOO_LARGE: 413
 };
 
 /**
@@ -36,7 +37,9 @@ const STATUS_BY_CODE = {
  * itself grant a browser any capability it doesn't already have from a
  * valid caller token.
  */
-export function createExecutionHttpServer(service, { corsOrigin = "*" } = {}) {
+const DEFAULT_MAX_BODY_BYTES = 25 * 1024 * 1024; // 25MB: generous enough for a base64-encoded PDF or photo, still bounded.
+
+export function createExecutionHttpServer(service, { corsOrigin = "*", maxBodyBytes = DEFAULT_MAX_BODY_BYTES } = {}) {
   return createServer(async (req, res) => {
     res.setHeader("Access-Control-Allow-Origin", corsOrigin);
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
@@ -51,7 +54,7 @@ export function createExecutionHttpServer(service, { corsOrigin = "*" } = {}) {
     try {
       const url = new URL(req.url, "http://localhost");
       const token = bearerToken(req);
-      const body = await readJsonBody(req);
+      const body = await readJsonBody(req, maxBodyBytes);
 
       let result;
       let deviceMatch;
@@ -100,15 +103,42 @@ function bearerToken(req) {
   return match ? match[1] : null;
 }
 
-function readJsonBody(req) {
+// Bounded by maxBodyBytes: an unbounded `Buffer.concat` over every
+// chunk a client cares to send is an unauthenticated memory-exhaustion
+// vector, since this runs before bearerToken()/service auth reject
+// anything. Tracks cumulative length as chunks arrive (not just the
+// final size), so buffering stops the moment the limit is crossed
+// instead of only being caught after the whole oversized body has
+// already been held in memory. Deliberately does NOT destroy the
+// socket: doing so mid-request tears down the connection before a
+// proper 413 response can be written, so the client sees a raw
+// connection reset instead of an HTTP error. The remainder of an
+// oversized body is still received off the wire (so the socket drains
+// normally) but is no longer appended to `chunks`, which is what
+// actually closes the memory-exhaustion vector.
+function readJsonBody(req, maxBodyBytes) {
   return new Promise((resolve, reject) => {
     if (req.method !== "POST") {
       resolve({});
       return;
     }
     const chunks = [];
-    req.on("data", (chunk) => chunks.push(chunk));
+    let received = 0;
+    let rejected = false;
+    req.on("data", (chunk) => {
+      if (rejected) return;
+      received += chunk.length;
+      if (received > maxBodyBytes) {
+        rejected = true;
+        const error = new Error(`Request body exceeds the ${maxBodyBytes}-byte limit`);
+        error.code = "PAYLOAD_TOO_LARGE";
+        reject(error);
+        return;
+      }
+      chunks.push(chunk);
+    });
     req.on("end", () => {
+      if (rejected) return;
       const raw = Buffer.concat(chunks).toString("utf8");
       if (!raw) {
         resolve({});

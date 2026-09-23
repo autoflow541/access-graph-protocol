@@ -11,6 +11,7 @@ import { AccessGraph } from "../sdk/javascript/agp.js";
 import { thingDescriptionToAgp } from "../adapters/wot/index.js";
 import { ExecutionService } from "./execution-service.js";
 import { createExecutionHttpServer } from "./http-server.js";
+import { resolveDevToken } from "./dev-token.mjs";
 
 const thermostatTd = {
   "@context": "https://www.w3.org/2022/wot/td/v1.1",
@@ -47,10 +48,11 @@ const profile = {
   interaction: { confirmation_for: ["device_control", "physical_safety"] }
 };
 
+const token = resolveDevToken();
 const service = new ExecutionService({
   graph,
   profile,
-  allowedCallers: new Set([process.env.AGP_DEV_TOKEN || "dev-token"]),
+  allowedCallers: new Set([token]),
   executor: async (_objectId, actionId, parameters) => {
     if (actionId === "write_targettemperature") {
       values.targetTemperature = Number(parameters.value);
@@ -66,9 +68,8 @@ const service = new ExecutionService({
 
 const server = createExecutionHttpServer(service);
 const port = Number(process.env.PORT) || 8787;
-server.listen(port, () => {
-  const token = process.env.AGP_DEV_TOKEN || "dev-token";
-  console.log(`AGP execution service listening on http://localhost:${port}`);
-  console.log(`Caller token: ${token} (set AGP_DEV_TOKEN to change it)`);
-  console.log(`Try: curl -H "Authorization: Bearer ${token}" http://localhost:${port}/devices/hall-thermostat`);
+server.listen(port, "127.0.0.1", () => {
+  console.log(`AGP execution service listening on http://127.0.0.1:${port} (localhost only)`);
+  console.log(`Caller token: ${token} (set AGP_DEV_TOKEN to pin it)`);
+  console.log(`Try: curl -H "Authorization: Bearer ${token}" http://127.0.0.1:${port}/devices/hall-thermostat`);
 });
