@@ -261,7 +261,10 @@ Its own correctness is tested, not just its happy path
 the real thermostat fixture and prints the real report, 5/5 pass, 0
 skipped.
 
-Not done: not wired into CI; only exercised against the in-process
+Wired into CI (`.github/workflows/test.yml` runs `npm run check:conformance`
+after `npm test`, on both Node 22.x and 24.x): a regression in
+`ExecutionService`'s fault handling now fails the build, not just a
+local run. Not done: only exercised against the in-process
 `ExecutionService` API, never driven over HTTP end to end. As stated in
 the audit item itself and repeated here so a report is never read as
 more than this: a "pass" means this codebase's own fault handling
@@ -273,8 +276,7 @@ backend is actually accessible.
 WoT schema coverage, cross-discovery stable IDs, Lens Studio/hardware
 verification, real screen-reader verification of every browser example,
 per-action capability channels, real capability detection (vs. the
-current manual-toggle simulation), one real physical device (M3), and
-wiring the scenario runner into CI. See
-`docs/audit-2026-09-22.md` for acceptance criteria and feature
+current manual-toggle simulation), and one real physical device (M3).
+See `docs/audit-2026-09-22.md` for acceptance criteria and feature
 priorities. ("UI versus executor confirmation consistency" from the
 original audit finding was fixed: see CHANGELOG.md's 0.1.11 entry.)
