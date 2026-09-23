@@ -116,7 +116,22 @@ AGP is currently an experimental interoperability prototype. The roadmap priorit
 - [ ] MCP tool projection for AGP actions
 - [ ] Event subscription model
 - [ ] Capability discovery document at `/.well-known/agp`
-- [ ] Conformance test runner
+- [x] Conformance test runner (`docs/audit-2026-09-22.md` item 5,
+      `service/scenario-runner.mjs`): reproducible fault injection
+      (authorization denial, stale state at execute, duplicate-request
+      replay, malformed schema, dispatch timeout) against any real
+      `ExecutionService`, producing the machine-readable pass/fail
+      report the audit item asked for. Four of the five scenarios need
+      no mock executor at all, since they are `ExecutionService`-level
+      policy, not executor behavior; the timeout scenario is opt-in via
+      a `buildHangingService` factory and is honestly reported
+      `"skipped"`, not silently omitted, when one isn't supplied. Its
+      own correctness is tested, not just its happy path: a deliberately
+      broken service (denial that doesn't actually block execute()) is
+      correctly reported `"fail"`. `service/check-conformance.mjs`
+      (`npm run check:conformance`) runs it against the real thermostat
+      fixture: 5/5 pass, 0 skipped, against the real `ExecutionService`.
+      Not wired into CI; only exercised in-process, not over HTTP.
 
 ## 0.3: Safety, privacy, and trust
 

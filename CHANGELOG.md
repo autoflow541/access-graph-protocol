@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.1.23: 2026-09-22
+
+Scenario runner: the last item from the original five-item audit priority list.
+
+- New `service/scenario-runner.mjs`: `runScenarios()` runs reproducible
+  fault injection (authorization denial, stale state at execute,
+  duplicate-request replay, malformed schema, dispatch timeout) against
+  any real `ExecutionService`, producing a machine-readable pass/fail
+  report (`docs/audit-2026-09-22.md` item 5). Four of five scenarios
+  need no mock executor at all, since they're `ExecutionService`-level
+  policy, not executor behavior; the timeout scenario is opt-in via a
+  `buildHangingService` factory and honestly reported `"skipped"`, not
+  silently omitted, when one isn't supplied.
+- New `service/check-conformance.mjs` (`npm run check:conformance`): the
+  actual deliverable the audit item asked for, not just a test. Runs the
+  scenario runner against the real thermostat fixture and prints the
+  real report: 5/5 pass, 0 skipped, against the real `ExecutionService`.
+- New `tests/scenario-runner-test.mjs`: exercises all five scenarios,
+  including that a deliberately broken `ExecutionService` (one where a
+  denied proposal is still executable) is correctly reported `"fail"`,
+  not silently passed. The runner's own correctness is checked, not just
+  its happy path.
+- Not done: not wired into CI; only exercised against the in-process
+  `ExecutionService` API, never driven over HTTP end to end. As the
+  audit item itself states and this doc repeats: a "pass" means this
+  codebase's own fault handling behaved as documented, nothing about
+  whether an underlying device or backend is actually accessible.
+- Docs updated: `docs/audit-2026-09-22.md`, `README.md`, `ROADMAP.md`'s
+  0.2 milestone (closing its pre-existing "Conformance test runner"
+  item), `NEXT.md`.
+
 ## 0.1.22: 2026-09-22
 
 A sixth media type, and a second real-production-backed one.

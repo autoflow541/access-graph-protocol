@@ -1,7 +1,7 @@
 # Access Graph Protocol (AGP)
 
 [![test](https://github.com/autoflow541/access-graph-protocol/actions/workflows/test.yml/badge.svg)](https://github.com/autoflow541/access-graph-protocol/actions/workflows/test.yml)
-[![npm version](https://img.shields.io/badge/version-0.1.22-blue)](CHANGELOG.md)
+[![npm version](https://img.shields.io/badge/version-0.1.23-blue)](CHANGELOG.md)
 [![license: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![status: experimental](https://img.shields.io/badge/status-experimental-orange)](ROADMAP.md)
 
@@ -66,6 +66,7 @@ A separate **Access Profile** describes functional interaction preferences witho
 - `adapters/pdf-remediation/`: a fourth media type, and the first backed by an already-deployed production service (Auto-Flow's pdf.auto-flow.co) rather than something built for this repo: check/analyze/remediate a PDF through AGP's execution model
 - `adapters/web-vision/`: a fifth media type, describing or locating elements on a webpage from a screenshot alone, regardless of whether the page has any ARIA/accessibility markup of its own; dispatched by the exact same `service/vision-executor.mjs` as the camera adapter, unmodified
 - `adapters/web-scan/`: a sixth media type, and a second real-production-backed one (Auto-Flow's scan.auto-flow.co, Playwright + axe-core): a deterministic WCAG audit rather than an AI judgment call, honestly labeled as such (`source.type: "structured_api"`)
+- `service/scenario-runner.mjs`: reproducible fault injection (authorization denial, stale state, duplicate request, malformed schema, dispatch timeout) against any `ExecutionService`, with a machine-readable pass/fail report; `service/check-conformance.mjs` (`npm run check:conformance`) runs it against the real thermostat fixture
 - `examples/website/`: adaptive web demo
 - `examples/drone/`: simulated physical-system demo using the same model
 - `examples/smart-device/`: WoT thermostat and SPECS-view simulator

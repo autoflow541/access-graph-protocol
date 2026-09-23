@@ -241,13 +241,40 @@ calling the real service on every `npm test`; the real-backend
 verification above was manual, not repeatable CI coverage. No browser
 demo yet.
 
+## Scenario runner: started, not finished
+
+`service/scenario-runner.mjs`'s `runScenarios()` is the last item from
+`docs/audit-2026-09-22.md`'s original five-item priority list: reproducible
+fault injection (authorization denial, stale state at execute,
+duplicate-request replay, malformed schema, dispatch timeout) against
+any real `ExecutionService`, producing a machine-readable pass/fail
+report. Four of five scenarios need no mock executor, since they're
+`ExecutionService`-level policy, not executor behavior; the timeout
+scenario is opt-in via a `buildHangingService` factory and honestly
+reported `"skipped"`, not silently omitted, when one isn't supplied.
+
+Its own correctness is tested, not just its happy path
+(`tests/scenario-runner-test.mjs`): a deliberately broken service
+(denial that doesn't actually block execute()) is correctly reported
+`"fail"`, not silently passed. `service/check-conformance.mjs`
+(`npm run check:conformance`) is the actual deliverable: runs it against
+the real thermostat fixture and prints the real report, 5/5 pass, 0
+skipped.
+
+Not done: not wired into CI; only exercised against the in-process
+`ExecutionService` API, never driven over HTTP end to end. As stated in
+the audit item itself and repeated here so a report is never read as
+more than this: a "pass" means this codebase's own fault handling
+behaved as documented, nothing about whether an underlying device or
+backend is actually accessible.
+
 ## Still open
 
 WoT schema coverage, cross-discovery stable IDs, Lens Studio/hardware
 verification, real screen-reader verification of every browser example,
 per-action capability channels, real capability detection (vs. the
-current manual-toggle simulation), one real physical device (M3), and a
-scenario runner. See
+current manual-toggle simulation), one real physical device (M3), and
+wiring the scenario runner into CI. See
 `docs/audit-2026-09-22.md` for acceptance criteria and feature
 priorities. ("UI versus executor confirmation consistency" from the
 original audit finding was fixed: see CHANGELOG.md's 0.1.11 entry.)
