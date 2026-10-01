@@ -87,8 +87,22 @@ capability gap can never be read as a diagnosis about the person. Tested
 (`tests/capability-negotiation-test.mjs`) and rendered live in
 `examples/execution-client/` as togglable checkboxes against a demo
 thermostat now declaring real `touch`/`voice`/`visual`/`audio` channels.
-Not done: object-level only (no per-action channels), and the checkboxes
-are a manual simulation: nothing here reads a real device's or browser's
+
+**Per-action channels: done (2026-10-01).** New
+`negotiateActionCapabilities(object, actionId, clientCapabilities)`: an
+action can declare its own `inputs`/`outputs` (schema/access-graph.schema.json),
+overriding the object's for negotiation on that action specifically (a
+lock's `unlock` can require `touch` even if the lock object itself also
+accepts `voice` for its other actions), falling back to the object's
+channels when an action declares none of its own. Object-level
+`negotiateCapabilities()` is unaffected by any action's override.
+`examples/execution-client/` still only exercises the object-level path;
+wiring the action-level function into that example, and into
+`service/execution-service.js`'s `inspect()` output, is the real
+remaining work here, not a new gap.
+
+Still not done: the checkboxes in `examples/execution-client/` are a
+manual simulation: nothing here reads a real device's or browser's
 actual capabilities. See `docs/audit-2026-09-22.md` item 4.
 
 ## Real WoT execution: started, not finished

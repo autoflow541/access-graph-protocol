@@ -210,10 +210,38 @@ export function renderControls(object, profile = {}) {
 // blocking, so the caller can always let the person proceed regardless of
 // a reported gap (the override this exists to preserve).
 export function negotiateCapabilities(object, clientCapabilities = {}) {
+  return negotiate(object.label, object.inputs ?? [], object.outputs ?? [], clientCapabilities);
+}
+
+// Action-level capability negotiation: negotiateCapabilities() above is
+// object-level only, so a lock with a safety-critical `unlock` action
+// that genuinely needs `touch` specifically has no way to say so without
+// also claiming its OTHER actions (reading battery level, say) need
+// touch too, even though those work fine over voice alone. Flagged as a
+// known gap in NEXT.md ("object-level only, no per-action channels")
+// since capability negotiation first shipped.
+//
+// An action's own `inputs`/`outputs` (schema/access-graph.schema.json),
+// if it declares them, take over ENTIRELY for that action -- not merged
+// with the object's. A declared-but-empty action-level list is a
+// meaningful claim ("this specific action needs no input channel at
+// all"), not "inherit the object's," so the fallback to the object's
+// channels only happens when the field is genuinely absent (`??`, not
+// `||`). Most actions don't declare their own and fall back to the
+// object's channels unchanged: this is additive, not a breaking change
+// to any existing object.
+export function negotiateActionCapabilities(object, actionId, clientCapabilities = {}) {
+  const action = (object.actions ?? []).find((candidate) => candidate.id === actionId);
+  if (!action) throw new Error(`Unknown action ${actionId} on ${object.id}`);
+  const label = `${object.label} – ${action.label ?? humanize(action.id)}`;
+  const requiredInputs = action.inputs ?? object.inputs ?? [];
+  const requiredOutputs = action.outputs ?? object.outputs ?? [];
+  return negotiate(label, requiredInputs, requiredOutputs, clientCapabilities);
+}
+
+function negotiate(label, requiredInputs, requiredOutputs, clientCapabilities) {
   const clientInputs = new Set(clientCapabilities.inputs ?? []);
   const clientOutputs = new Set(clientCapabilities.outputs ?? []);
-  const requiredInputs = object.inputs ?? [];
-  const requiredOutputs = object.outputs ?? [];
 
   const supportedInputs = requiredInputs.filter((channel) => clientInputs.has(channel));
   const missingInputs = requiredInputs.filter((channel) => !clientInputs.has(channel));
@@ -229,8 +257,8 @@ export function negotiateCapabilities(object, clientCapabilities = {}) {
       channel: "input",
       missing: missingInputs,
       explanation: canControl
-        ? `${object.label} also accepts ${joinChannels(missingInputs)}, which this session doesn't report as available. It can still be controlled here via ${joinChannels(supportedInputs)}.`
-        : `${object.label} can only be controlled via ${joinChannels(requiredInputs)}, and this session doesn't report any of those as available. No alternative input is available in this session.`
+        ? `${label} also accepts ${joinChannels(missingInputs)}, which this session doesn't report as available. It can still be controlled here via ${joinChannels(supportedInputs)}.`
+        : `${label} can only be controlled via ${joinChannels(requiredInputs)}, and this session doesn't report any of those as available. No alternative input is available in this session.`
     });
   }
   if (missingOutputs.length > 0) {
@@ -238,8 +266,8 @@ export function negotiateCapabilities(object, clientCapabilities = {}) {
       channel: "output",
       missing: missingOutputs,
       explanation: canPerceive
-        ? `${object.label} also reports state via ${joinChannels(missingOutputs)}, which this session doesn't report as available to perceive. State can still be read here via ${joinChannels(supportedOutputs)}.`
-        : `${object.label} only reports state via ${joinChannels(requiredOutputs)}, and this session doesn't report any of those as available to perceive. No alternative output is available in this session.`
+        ? `${label} also reports state via ${joinChannels(missingOutputs)}, which this session doesn't report as available to perceive. State can still be read here via ${joinChannels(supportedOutputs)}.`
+        : `${label} only reports state via ${joinChannels(requiredOutputs)}, and this session doesn't report any of those as available to perceive. No alternative output is available in this session.`
     });
   }
 

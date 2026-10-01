@@ -87,6 +87,18 @@
             "method": { "type": "string" }
           },
           "additionalProperties": true
+        },
+        "inputs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true,
+          "description": "Channels THIS action specifically requires, overriding the object's own `inputs` for capability negotiation on this action only (negotiateActionCapabilities). Omit to fall back to the object's `inputs`: most actions don't need a narrower requirement than the object they belong to."
+        },
+        "outputs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true,
+          "description": "Channels THIS action specifically requires to perceive its outcome, overriding the object's own `outputs` for capability negotiation on this action only (negotiateActionCapabilities). Omit to fall back to the object's `outputs`."
         }
       },
       "additionalProperties": true

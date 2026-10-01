@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.28: 2026-10-01
+
+Per-action capability negotiation: the gap `NEXT.md` had flagged since `negotiateCapabilities()` first shipped ("object-level only, no per-action channels").
+
+An object's `inputs`/`outputs` describe what's needed to control/perceive it as a whole, but a single object can have actions with genuinely different requirements — a lock's `unlock` is safety-critical and might need `touch` specifically, while the same lock's `read_battery` works fine over voice. Before this, there was no way to say that without either narrowing the whole object to `touch` (so `read_battery` wrongly reports as voice-incompatible) or leaving `unlock` reachable over voice alone.
+
+- New `negotiateActionCapabilities(object, actionId, clientCapabilities)` in `sdk/javascript/agp.js`. An action can declare its own `inputs`/`outputs` (new optional fields on the action schema, `schema/access-graph.schema.json`), which override the object's entirely for negotiation on that action; an action with neither field falls back to the object's channels unchanged, so every existing object's behavior is identical to before. A declared-but-empty `inputs: []` is a meaningful claim ("this action needs no input channel at all"), distinct from "not declared" — the fallback checks for absence (`??`), not falsiness.
+- `negotiateCapabilities()` itself is refactored onto a shared internal `negotiate()` helper (same logic, parameterized by label/required-channels instead of reading `object.*` directly) so the two functions can't drift from each other; its existing object-level behavior and public contract are unchanged — same tests, same results.
+- `tests/capability-negotiation-test.mjs` extended: an action-level override narrowing control relative to the object, an action with no override falling back correctly, confirmation that one action's override never leaks into `negotiateCapabilities()`'s object-level result, the empty-array-is-meaningful case, and an unknown-action-id error.
+- `NEXT.md` updated: this item marked done, with the honest remainder (wiring the new function into `examples/execution-client/` and `service/execution-service.js`'s `inspect()` output) called out as the actual next step, not left implying the whole capability-negotiation story is finished.
+
+Tests: 19 suites, all green, plus `check:conformance` (5/5).
+
 ## 0.1.27: 2026-10-01
 
 Authorization gets the same category floor risk and confirmation already have.

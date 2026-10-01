@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { negotiateCapabilities } from "../sdk/javascript/agp.js";
+import { negotiateActionCapabilities, negotiateCapabilities } from "../sdk/javascript/agp.js";
 
 const touchpanelThermostat = {
   id: "hall-thermostat",
@@ -72,6 +72,62 @@ const touchpanelThermostat = {
   assert.deepEqual(result.supportedOutputs, []);
 }
 
+// --- negotiateActionCapabilities: a lock whose object-level channels are
+// touch+voice, but whose safety-critical `unlock` action narrows that to
+// touch only, while a `read_battery` action declares no override of its
+// own and falls back to the object's channels unchanged. (NEXT.md: this
+// was "object-level only, no per-action channels" before this change.)
+{
+  const lock = {
+    id: "front-door",
+    label: "Front door lock",
+    inputs: ["touch", "voice"],
+    outputs: ["visual", "audio"],
+    actions: [
+      { id: "unlock", label: "Unlock", risk: "high", inputs: ["touch"] },
+      { id: "read_battery", label: "Read battery", risk: "none" }
+    ]
+  };
+
+  const voiceOnlyClient = { inputs: ["voice"], outputs: ["visual", "audio"] };
+
+  const unlockResult = negotiateActionCapabilities(lock, "unlock", voiceOnlyClient);
+  assert.equal(unlockResult.canControl, false, "unlock narrows to touch only; a voice-only client cannot control it");
+  assert.match(unlockResult.conflicts.find((c) => c.channel === "input").explanation, /Front door lock – Unlock/);
+
+  const batteryResult = negotiateActionCapabilities(lock, "read_battery", voiceOnlyClient);
+  assert.equal(batteryResult.canControl, true, "read_battery has no override and falls back to the object's touch+voice, which voice satisfies");
+
+  // Object-level negotiateCapabilities must be completely unaffected by
+  // an action declaring its own narrower channels: it still reports the
+  // OBJECT's touch+voice, not unlock's touch-only override.
+  const objectResult = negotiateCapabilities(lock, voiceOnlyClient);
+  assert.equal(objectResult.canControl, true, "object-level negotiation must not be narrowed by one action's override");
+
+  assert.throws(() => negotiateActionCapabilities(lock, "nonexistent", voiceOnlyClient), /Unknown action/);
+}
+
+// --- A declared-but-empty action-level `inputs: []` is a meaningful claim
+// ("this action needs no input channel at all"), not "fall back to the
+// object's": `??` (absent check), not `||` (falsy check), must be what
+// decides the fallback.
+{
+  const sensor = {
+    id: "sensor-01",
+    label: "Sensor",
+    inputs: ["touch", "voice"],
+    actions: [{ id: "auto_log", label: "Auto log", risk: "none", inputs: [] }]
+  };
+  const noInputClient = { inputs: [] };
+  const result = negotiateActionCapabilities(sensor, "auto_log", noInputClient);
+  assert.equal(result.canControl, true, "an action declaring inputs: [] requires nothing, regardless of what the object itself requires");
+  assert.deepEqual(result.missingInputs, []);
+}
+
+// --- Structural guard: same arity discipline as negotiateCapabilities --
+// (object, actionId, clientCapabilities), never a profile.
+assert.equal(negotiateActionCapabilities.length, 2);
+
 // --- Structural guard: the function takes only (object, clientCapabilities) -- never a profile,
 // so a capability gap can never be computed from (and therefore never read as) a person's stated
 // preferences. (.length is 1, not 2: clientCapabilities has a default value, which JS excludes
@@ -79,4 +135,4 @@ const touchpanelThermostat = {
 // exists.) If this ever grows a third parameter, that guarantee needs re-examining, not silently drifting.
 assert.equal(negotiateCapabilities.length, 1);
 
-console.log("Capability negotiation test passed (full/partial/no match on inputs and outputs, no invented alternatives, no profile coupling)");
+console.log("Capability negotiation test passed (full/partial/no match on inputs and outputs, no invented alternatives, no profile coupling, per-action override with object-level fallback)");
