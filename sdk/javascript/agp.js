@@ -13,13 +13,20 @@ export const RISK_ORDER = ["none", "low", "medium", "high", "critical"];
 // actions built from a Thing Description: an ARIA-sourced action, or one
 // registered natively via AccessGraph.register() with no adapter at all,
 // had NO floor protection, however dangerous its declared category. These
-// are now the single shared source of truth: effectiveRisk() and
-// requiresConfirmationFor() below apply them to every action read from an
-// AccessGraph, independent of source. (adapters/wot/index.js keeps its own
-// copy too, applied earlier, while building a not-yet-registered action
-// from raw Thing Description fields -- a different timing point, not a
-// second decision: flooring twice is idempotent, since the floor only
-// ever raises.)
+// are now the single shared source of truth: effectiveRisk(),
+// requiresConfirmationFor(), and requiresAuthorizationFor() below apply
+// them to every action read from an AccessGraph, independent of source.
+// (adapters/wot/index.js keeps its own risk/confirmation copy too,
+// applied earlier, while building a not-yet-registered action from raw
+// Thing Description fields -- a different timing point, not a second
+// decision: flooring twice is idempotent, since the floor only ever
+// raises.)
+//
+// CATEGORY_CONFIRMATION_FLOOR floors two separate gates, not one:
+// confirmation ("does a person need to say yes to this") and
+// authorization ("is this caller allowed to do this at all"). The same
+// four categories floor both, since neither gate alone is a substitute
+// for the other on a dangerous action.
 //
 // `category` itself is still source-declared and can be mislabeled (a WoT
 // TD's `x-agp-category`, an ARIA role mapping, a native caller's own
@@ -101,7 +108,7 @@ export class AccessGraph {
       object: structuredCloneSafe(object),
       action: structuredCloneSafe(action),
       requiresConfirmation: requiresConfirmationFor(action, profile),
-      authorizationRequired: Boolean(action.authorization?.required)
+      authorizationRequired: requiresAuthorizationFor(action)
     };
   }
 }
@@ -136,6 +143,24 @@ function requiresConfirmationFor(action, profile) {
   // `confirmation: false` on one of these cannot turn this off.
   const categoryFloorRequiresConfirmation = Boolean(action.category && CATEGORY_CONFIRMATION_FLOOR.has(action.category));
   return Boolean(action.confirmation || riskRequiresConfirmation || categoryRequiresConfirmation || categoryFloorRequiresConfirmation);
+}
+
+// Mirrors requiresConfirmationFor's floor, for the same reason and the
+// same categories: `action.authorization.required` was, before this,
+// read as the ONLY signal for whether authorization is needed --
+// entirely self-declared, with no floor at all (unlike risk and
+// confirmation, which already had one). A "financial" or "destructive"
+// action could declare `authorization: { required: false }` and nothing
+// in this file would raise it: confirmation alone ("yes, I meant to do
+// that") is not the same safety property as authorization ("this caller
+// is allowed to do that"), and a dangerous category needs both, not
+// whichever one its source happened to declare. The declared value can
+// still only ever be raised by this floor, never lowered: an action that
+// already declares `authorization: { required: true }` is unaffected.
+function requiresAuthorizationFor(action) {
+  const declared = Boolean(action.authorization?.required);
+  const categoryFloor = Boolean(action.category && CATEGORY_CONFIRMATION_FLOOR.has(action.category));
+  return declared || categoryFloor;
 }
 
 export function summarizeObject(object, profile = {}) {

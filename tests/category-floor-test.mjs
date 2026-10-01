@@ -44,6 +44,35 @@ if (resolvedBalance.requiresConfirmation) {
   throw new Error("A low-risk, unfloored-category action with confirmation: false must not require confirmation");
 }
 
+// Authorization has its own floor, separate from confirmation: a
+// "financial" action that explicitly declares authorization.required:
+// false must still require it. transfer_funds above has no
+// `authorization` field at all, so this also covers the "undeclared"
+// case, not just an explicit false.
+if (!resolvedTransfer.authorizationRequired) {
+  throw new Error("A 'financial' category action must require authorization even when undeclared");
+}
+if (resolvedBalance.authorizationRequired) {
+  throw new Error("An unfloored-category action with no declared authorization must not require it");
+}
+
+graph.register({
+  id: "wallet-03",
+  role: "service",
+  label: "Wallet 3",
+  state: {},
+  actions: [{
+    id: "transfer_funds",
+    label: "Transfer funds",
+    risk: "critical",
+    category: "financial",
+    authorization: { required: false }
+  }]
+});
+if (!graph.resolveAction("wallet-03", "transfer_funds").authorizationRequired) {
+  throw new Error("A category floor must override an explicit authorization.required: false, the same way it overrides a declared confirmation: false");
+}
+
 // renderControls (what a client UI is built from) and resolveAction (the
 // actual gate) must agree, the same invariant tests/smoke-test.mjs checks
 // for the profile-driven confirmation_for path: a floor that's enforced

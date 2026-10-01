@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.27: 2026-10-01
+
+Authorization gets the same category floor risk and confirmation already have.
+
+While wiring 0.1.26's confirmation/risk floors into `resolveAction()`, found the direct sibling gap: `authorizationRequired` was read straight from `Boolean(action.authorization?.required)`, no floor applied at all. Confirmation ("a person said yes") and authorization ("this caller is allowed to") are different safety properties; a "financial" or "destructive" action could self-declare `authorization: { required: false }` (or simply omit `authorization` entirely) and nothing would raise it, even though the same action's risk and confirmation were already correctly floored.
+
+- New `requiresAuthorizationFor(action)` in `sdk/javascript/agp.js`, floored by the same `CATEGORY_CONFIRMATION_FLOOR` set (physical_safety/security/financial/destructive) as confirmation — both gates matter for the same categories, so one set of categories floors both. `AccessGraph.resolveAction()` now calls it instead of reading `action.authorization?.required` directly. As with the risk/confirmation floors, this only ever raises: an action that already declares `authorization: { required: true }` is unaffected.
+- `tests/category-floor-test.mjs` extended: a floored-category action with no `authorization` field, and one with an explicit `authorization: { required: false }`, must both still require authorization; an unfloored category must not.
+
+Tests: 19 suites, all green, plus `check:conformance` (5/5).
+
 ## 0.1.26: 2026-10-01
 
 Category-based risk/confirmation floors moved into the core SDK, plus a WebMCP adapter built on the principle those floors (and the rest of this project's safety gate) exist to enforce.
