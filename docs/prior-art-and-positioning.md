@@ -12,7 +12,13 @@ URC described machine-readable device functionality and state, independent
 of how a user perceives or operates it, and explicitly included
 alternative interfaces and intelligent agents: the same core idea AGP is
 built on. The 2014 framework and socket-description editions are
-withdrawn.
+withdrawn, and the Open URC Alliance — the body that maintained it —
+formally dissolved in 2024 "after nearly two decades of advancing
+accessible technology standards" ([OpenURC Archive
+homepage](https://openurc.org/)). AGP should name this directly rather
+than let a reader discover it unprompted: the device-describes-itself,
+AT-decides-presentation *pattern* already has a name, a standards
+lineage, and a documented end date.
 
 **What this means for AGP:** do not claim to have invented
 presentation-independent device interaction: URC preceded it by roughly
@@ -175,10 +181,51 @@ hints should never be able to *lower* what a server-side policy requires,
 only ever raise it or leave it unchanged.
 
 **What this means for AGP:** an MCP projection of AGP actions (letting an
-AI agent discover and propose them) is plausible future work, but it must
-call through the *same* validated execution service as every other
-client: an AI-supplied or device-supplied risk label is not permission,
-exactly as MCP's own trust model states for its own annotations.
+AI agent discover and propose them) must call through the *same*
+validated execution service as every other client: an AI-supplied or
+device-supplied risk label is not permission, exactly as MCP's own trust
+model states for its own annotations. `adapters/webmcp/` is this
+projection, built directly on this principle: see the next section.
+
+## WebMCP
+
+[WebMCP](https://github.com/webmachinelearning/webmcp) is a proposed
+browser API (`document.modelContext.registerTool()`) from the W3C Web
+Machine Learning Community Group, letting a *page* declare its own
+client-side tools to a browser-integrated AI agent, rather than the agent
+inferring them from the DOM or a backend MCP server. It shipped as a
+Chrome Early Preview in February 2026 and sits on the W3C Accessible
+Platform Architectures Working Group's own 2026 agenda. Its own
+explainer is explicit that it is agent-facing, not an accessibility
+mechanism: "WebMCP itself is not designed for ingestion by accessibility
+technology, nor is it designed to interact directly with a page's
+accessibility tree; rather, it enables agents to act as highly capable
+intermediaries" ([WebMCP README, "Improve accessibility through
+agents"](https://github.com/webmachinelearning/webmcp#readme)).
+
+That line is exactly AGP's opening: WebMCP gives an agent a way to call a
+tool, but says nothing about how a risky tool call should be confirmed
+by, or authorized for, the actual person the agent is acting on behalf
+of. `adapters/webmcp/` fills that gap directly rather than leaving it to
+each page's own `execute()` callback to reinvent: a WebMCP tool built
+from an AGP action can never complete a confirmation- or
+authorization-gated action through the tool call alone, by construction
+(see `adapters/webmcp/README.md`). This is the same trust-model
+principle as this document's MCP section above, now actually
+implemented, not just described as future work.
+
+A closely related academic proposal, "MCP-Driven Accessibility Tree
+Standardization for AI-Powered Screen Reader Agents"
+([arXiv:2608.24898](https://arxiv.org/abs/2608.24898), submitted July
+2026), argues for using the Model Context Protocol itself as a unifying
+transport between Windows UI Automation, macOS Accessibility, Android
+AccessibilityService, and web ARIA, for AI agents specifically. It
+targets the same underlying fragmentation problem this document's URL
+and WoT sections describe, scoped to screen/web/mobile UI only, not
+physical or IoT devices the way AGP claims to span. Worth citing as the
+closest live academic work to AGP's own framing; worth noting its author
+affiliations are not independently verified here, and it reads as a
+conceptual/comparative paper rather than a deployed system.
 
 ## Apple App Intents: a documented cautionary precedent, not just a comparison
 
@@ -206,6 +253,44 @@ App Intents' documented gap is a concrete, real-world argument for keeping
 that design, not a hypothetical one: a confirmation mechanism that a
 particular input modality can silently miss is worse than no confirmation
 mechanism, because it looks safe in code review.
+
+## Apple Accessibility Nutrition Labels
+
+Apple's Accessibility Nutrition Labels (previewed May 2025, live on the
+App Store) surface per-app support for VoiceOver, Voice Control, Larger
+Text, and similar features as structured, disclosed data, verified
+against defined criteria ([Apple Newsroom, May
+2025](https://www.apple.com/newsroom/2025/05/apple-unveils-powerful-accessibility-features-coming-later-this-year/)).
+It is the most visible real-world instance of "accessibility state as
+machine-readable data" shipping today.
+
+**What this means for AGP:** Nutrition Labels are a *disclosure* layer —
+static, human-readable, checked at listing time — not a *negotiation*
+layer a client queries at runtime to discover live state and available
+actions. AGP is squarely in the second category. The two are
+complementary, not competing: a Nutrition-Label-style disclosure could
+plausibly summarize what an AGP-described object supports, the same way
+`summarizeObject()` already produces a human-readable rollup, but neither
+replaces the other.
+
+## Trace Center / University of Maryland: kiosk accessibility
+
+Trace Center's NIDILRR-funded Inclusive ICT RERC is actively developing
+cross-disability kiosk accessibility guidelines, descended from the
+EZ-Access standard long deployed in USPS kiosks, with a new prototype
+reported February 2026 ([TRACE RERC kiosk
+accessibility](https://trace.umd.edu/projects-kiosk-guidelines/)). It is
+the closest actively-funded academic work in AGP's own named physical
+domain (kiosks are one of AGP's stated example surfaces).
+
+**What this means for AGP:** Trace's work standardizes how a kiosk itself
+must *behave* — hardware and software guidelines a kiosk vendor builds
+to — not how a kiosk *declares itself* to third-party assistive software
+at runtime. AGP's kiosk ambitions sit as a thin negotiation layer over
+Trace-style guideline compliance, not a replacement for it, the same
+relationship AGP has to WoT and Matter in the device-layer sections
+above: AGP does not reinvent what a device/kiosk should do, it describes
+what one already does so a client can choose how to present it.
 
 ## A2UI
 
@@ -256,26 +341,33 @@ milestone in `ROADMAP.md`.
 
 AGP does not make arbitrary existing software or objects accessible
 automatically, and does not claim to be the first system to separate
-device meaning from presentation. Its scope is narrower and, we believe,
-still useful: a validated action lifecycle (proposal → confirmation →
-authorization → dispatch → outcome, see `docs/adr-0001-wot-reuse.md` and
-the parameter-binding fix in `adapters/specs/index.js`) combined with
+device meaning from presentation — that specific pattern is ISO/IEC
+24752's socket/controller model, already named, already standardized,
+and already dissolved as of 2024 (see the Universal Remote Console
+section above). Its scope is narrower and, we believe, still useful: a
+validated action lifecycle (proposal → confirmation → authorization →
+dispatch → outcome, see `docs/adr-0001-wot-reuse.md` and the
+parameter-binding fix in `adapters/specs/index.js`) combined with
 portable, user-controlled Access Profiles and accessible interaction
-patterns across genuinely different client technologies (a browser and
-Spectacles glasses, so far). The JSON graph by itself is not the product;
-the validated execution model plus the accessible presentation adapters
-around it is.
+patterns across genuinely different client technologies (a browser,
+Spectacles glasses, and a browser-integrated AI agent via WebMCP, so
+far). The JSON graph by itself is not the product; the validated
+execution model plus the accessible presentation adapters around it is.
 
 Every device/action-layer precedent looked at so far: WoT's security
 schemes, Matter's fabric ACL, Home Assistant's service calls: has a real
 authorization model but no risk-tiered, accessibility-aware confirmation
 layer, and every action-invocation precedent looked at so far: App
-Intents' `requestConfirmation`, MCP's tool annotations: has a
-confirmation or trust mechanism with a documented gap (a modality that can
-bypass it, or an annotation with no enforced trust boundary). That is
-independent evidence for the specific, narrow bet this project is making:
-not that device description or UI rendering need reinventing (AccessKit,
-A2UI, WoT, and Matter already do those well), but that the
-risk/confirmation/Access-Profile layer between them and a person is
-consistently missing, and worth building once rather than inside every
-adapter separately.
+Intents' `requestConfirmation`, MCP's tool annotations, WebMCP's
+`execute()` callback: has a confirmation or trust mechanism with a
+documented gap (a modality that can bypass it, an annotation with no
+enforced trust boundary, or — WebMCP — no confirmation semantics at all,
+left entirely to each page's own callback). That is independent evidence
+for the specific, narrow bet this project is making: not that device
+description or UI rendering need reinventing (AccessKit, A2UI, WoT, and
+Matter already do those well), but that the risk/confirmation/
+Access-Profile layer between them and a person is consistently missing,
+and worth building once — including the category-based risk and
+confirmation floors now enforced centrally in `sdk/javascript/agp.js` for
+every action regardless of source adapter, see `effectiveRisk()` — rather
+than inside every adapter separately.

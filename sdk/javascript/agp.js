@@ -2,6 +2,54 @@ export const AGP_VERSION = "0.1";
 
 export const RISK_ORDER = ["none", "low", "medium", "high", "critical"];
 
+// Category-based safety floors. A self-declared `risk`/`confirmation` on an
+// action can only ever RAISE above these floors, never lower below them --
+// regardless of which adapter (or no adapter) produced the action. This is
+// the same trust model MCP's own tool-annotations spec documents for
+// itself (annotations inform UI, never gate a safety-critical decision on
+// their own: see docs/prior-art-and-positioning.md's MCP section).
+//
+// This used to live only inside adapters/wot/index.js, applied solely to
+// actions built from a Thing Description: an ARIA-sourced action, or one
+// registered natively via AccessGraph.register() with no adapter at all,
+// had NO floor protection, however dangerous its declared category. These
+// are now the single shared source of truth: effectiveRisk() and
+// requiresConfirmationFor() below apply them to every action read from an
+// AccessGraph, independent of source. (adapters/wot/index.js keeps its own
+// copy too, applied earlier, while building a not-yet-registered action
+// from raw Thing Description fields -- a different timing point, not a
+// second decision: flooring twice is idempotent, since the floor only
+// ever raises.)
+//
+// `category` itself is still source-declared and can be mislabeled (a WoT
+// TD's `x-agp-category`, an ARIA role mapping, a native caller's own
+// claim). This floor does not detect that; it only guarantees that
+// whatever category an action ends up with, the matching floor is
+// enforced the same way everywhere. Closing the category-trust gap itself
+// needs a reviewed policy at the adapter boundary (see
+// adapters/wot/index.js's `categoryPolicy`).
+export const CATEGORY_RISK_FLOOR = {
+  physical_safety: "high",
+  security: "high",
+  financial: "high",
+  destructive: "high"
+};
+export const CATEGORY_CONFIRMATION_FLOOR = new Set(["physical_safety", "security", "financial", "destructive"]);
+
+// The one place "what risk does this action effectively have" is decided,
+// mirroring requiresConfirmationFor's own "one place" comment below: every
+// reader (renderControls, requiresConfirmationFor, any future consumer)
+// must go through this rather than read `action.risk` directly, or a
+// category floor applied in one place and not another is exactly the kind
+// of silent drift this file has already had to fix once (see
+// requiresConfirmationFor's history note).
+export function effectiveRisk(action) {
+  const declared = action.risk ?? "none";
+  const floor = CATEGORY_RISK_FLOOR[action.category];
+  if (!floor) return declared;
+  return RISK_ORDER.indexOf(declared) >= RISK_ORDER.indexOf(floor) ? declared : floor;
+}
+
 export class AccessGraph {
   constructor(objects = []) {
     this.objects = new Map();
@@ -71,7 +119,7 @@ export class AccessGraph {
 // itself was never bypassed, but a user (or a screen reader reading the
 // cue) had no warning a confirmation step was coming.
 function requiresConfirmationFor(action, profile) {
-  const risk = action.risk ?? "none";
+  const risk = effectiveRisk(action);
   const profileConfirm = profile?.interaction?.confirmation_for ?? [];
   const riskIndex = RISK_ORDER.indexOf(risk);
   // An unrecognized risk value (indexOf === -1) must not read as "below
@@ -81,7 +129,13 @@ function requiresConfirmationFor(action, profile) {
   // highest known risk rather than the lowest.
   const riskRequiresConfirmation = riskIndex === -1 || riskIndex >= RISK_ORDER.indexOf("high");
   const categoryRequiresConfirmation = Boolean(action.category && profileConfirm.includes(action.category));
-  return Boolean(action.confirmation || riskRequiresConfirmation || categoryRequiresConfirmation);
+  // Independent of risk level and user preference: physical_safety,
+  // security, financial, and destructive actions always require
+  // confirmation, the same way their risk can never be floored below
+  // "high" (CATEGORY_CONFIRMATION_FLOOR above). A source declaring
+  // `confirmation: false` on one of these cannot turn this off.
+  const categoryFloorRequiresConfirmation = Boolean(action.category && CATEGORY_CONFIRMATION_FLOOR.has(action.category));
+  return Boolean(action.confirmation || riskRequiresConfirmation || categoryRequiresConfirmation || categoryFloorRequiresConfirmation);
 }
 
 export function summarizeObject(object, profile = {}) {
@@ -108,7 +162,7 @@ export function renderControls(object, profile = {}) {
     actions: (object.actions ?? []).map((action) => ({
       id: action.id,
       label: action.label ?? humanize(action.id),
-      risk: action.risk ?? "none",
+      risk: effectiveRisk(action),
       confirmation: requiresConfirmationFor(action, profile)
     })),
     presentation: {
